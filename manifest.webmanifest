@@ -1,0 +1,17 @@
+{
+  "name": "粵語識字卡",
+  "short_name": "識字卡",
+  "description": "廣東話中文字卡遊戲",
+  "lang": "zh-HK",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FFF8E1",
+  "theme_color": "#FFD54F",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
