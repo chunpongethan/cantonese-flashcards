@@ -4,7 +4,7 @@ A phone-friendly flash card game for a young child learning to read Traditional 
 
 ## Modes
 - **翻翻卡 Flip & Listen**: see the picture, tap to flip, then hear and see the word.
-- **聽聽揀揀 Listen & Pick**: hear 「邊個係…呀？」 and tap the right character.
+- **聽聽揀揀 Listen & Pick**: hear 「邊個係…字？」 and tap the right character.
 - **配對遊戲 Matching Pairs**: match each picture card with its character card.
 - **寫寫字 Tracing**: watch the stroke order, then trace the character with a finger. This mode needs internet the first time.
 
