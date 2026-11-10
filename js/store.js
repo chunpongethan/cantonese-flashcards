@@ -1,9 +1,11 @@
-// Progress and settings, saved on this device (localStorage).
+// Progress, settings and the parent's own words, saved on this device (localStorage).
+import { CATEGORIES } from './words.js';
+
 const KEY = 'cantonese-flashcards-v1';
 
 const defaults = () => ({
   settings: {
-    cats: null,        // null = all categories on
+    catsOff: [],       // category ids turned off in the parent corner
     jyutping: false,
     roundSize: 6,
     rate: 0.8,
@@ -13,6 +15,7 @@ const defaults = () => ({
   stars: 0,
   stickers: [],
   stats: {},           // id -> { seen, right, wrong, last }
+  customWords: [],     // words added in the parent corner
 });
 
 function load() {
@@ -21,7 +24,13 @@ function load() {
     if (raw) {
       const saved = JSON.parse(raw);
       const def = defaults();
-      return { ...def, ...saved, settings: { ...def.settings, ...(saved.settings || {}) } };
+      const settings = { ...def.settings, ...(saved.settings || {}) };
+      // Older saves kept a list of categories that were ON.
+      if (Array.isArray(settings.cats)) {
+        settings.catsOff = CATEGORIES.map(c => c.id).filter(id => !settings.cats.includes(id));
+      }
+      delete settings.cats;
+      return { ...def, ...saved, settings };
     }
   } catch (e) { /* storage unavailable: play without saving */ }
   return defaults();
@@ -30,15 +39,35 @@ function load() {
 let data = load();
 
 function save() {
-  try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) { /* ignore */ }
+  try {
+    localStorage.setItem(KEY, JSON.stringify(data));
+    return true;
+  } catch (e) {
+    return false;
+  }
 }
 
 export const settings = () => data.settings;
 export const stars = () => data.stars;
 export const stickers = () => data.stickers;
+export const customWords = () => data.customWords;
 
 export function setSetting(key, value) {
   data.settings[key] = value;
+  save();
+}
+
+// Returns false if the word could not be saved (e.g. storage full of photos).
+export function addCustomWord(word) {
+  data.customWords.push(word);
+  if (save()) return true;
+  data.customWords.pop();
+  return false;
+}
+
+export function removeCustomWord(id) {
+  data.customWords = data.customWords.filter(w => w.id !== id);
+  delete data.stats[id];
   save();
 }
 
@@ -79,8 +108,9 @@ export function addSticker(all) {
   return { sticker: pick, isNew: left.length > 0 };
 }
 
+// Clears stars, stickers and learning stats; keeps settings and the parent's words.
 export function resetProgress() {
-  data = { ...defaults(), settings: data.settings };
+  data = { ...defaults(), settings: data.settings, customWords: data.customWords };
   save();
 }
 

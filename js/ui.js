@@ -30,6 +30,9 @@ export const wait = ms => new Promise(r => setTimeout(r, ms));
 
 // The picture side of a word: emoji, repeated emoji (numbers) or a colour swatch.
 export function pic(word, extraClass = '') {
+  if (word.img) {
+    return h('img', { class: `pic photo ${extraClass}`, src: word.img, alt: '', draggable: 'false' });
+  }
   if (word.color) {
     return h('div', { class: `pic swatch ${extraClass}`, style: { background: word.color } });
   }
@@ -45,7 +48,7 @@ export function hanzi(word, showJyutping = false) {
   const len = [...word.char].length;
   return h('div', { class: 'hanzi-wrap' },
     h('div', { class: `hanzi len${len}` }, word.char),
-    showJyutping ? h('div', { class: 'jyutping' }, word.jyutping) : null);
+    showJyutping && word.jyutping ? h('div', { class: 'jyutping' }, word.jyutping) : null);
 }
 
 export function wiggle(el) {

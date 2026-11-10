@@ -1,8 +1,10 @@
-import { WORDS, CATEGORIES, STICKERS, PRAISE } from './words.js';
+import { STICKERS, PRAISE } from './words.js';
 import * as speech from './speech.js';
 import * as sfx from './sfx.js';
 import * as store from './store.js';
 import { h, wiggle, confetti, pickOne } from './ui.js';
+import { allWords, enabledCategories } from './catalog.js';
+import { parentCorner } from './parent.js';
 import * as flipMode from './modes/flip.js';
 import * as pickMode from './modes/pick.js';
 import * as matchMode from './modes/match.js';
@@ -42,11 +44,6 @@ function bumpStars() {
   if (!el) return;
   el.textContent = store.stars();
   wiggle(el.parentElement);
-}
-
-function enabledCats() {
-  const on = store.settings().cats;
-  return CATEGORIES.filter(c => !on || on.includes(c.id));
 }
 
 // ---------- Splash (first tap unlocks sound on phones) ----------
@@ -101,7 +98,11 @@ function parentButton() {
   btn.addEventListener('pointerdown', e => {
     e.preventDefault();
     btn.classList.add('holding');
-    timer = setTimeout(() => { cancel(); sfx.tap(); parentCorner(); }, 2000);
+    timer = setTimeout(() => {
+      cancel();
+      sfx.tap();
+      parentCorner({ show, leave: home, applySettings });
+    }, 2000);
   });
   ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => btn.addEventListener(ev, cancel));
   btn.addEventListener('contextmenu', e => e.preventDefault());
@@ -118,7 +119,7 @@ function backBar(onBack, middle = null, right = null) {
 // ---------- Category picker ----------
 function chooseCategory(modeKey) {
   const m = MODES[modeKey];
-  const cats = enabledCats();
+  const cats = enabledCategories();
   const tiles = [
     h('button', {
       class: 'cat-tile all',
@@ -139,11 +140,13 @@ function chooseCategory(modeKey) {
 // ---------- Game ----------
 function startGame(modeKey, catId) {
   const m = MODES[modeKey];
-  const cats = enabledCats().map(c => c.id);
-  const pool = WORDS.filter(w => (catId === 'all' ? cats.includes(w.cat) : w.cat === catId));
+  const words = allWords();
+  const cats = enabledCategories().map(c => c.id);
+  const pool = words.filter(w => (catId === 'all' ? cats.includes(w.cat) : w.cat === catId));
+  if (!pool.length) { home(); return; }
   let size = store.settings().roundSize;
   if (modeKey === 'trace') size = Math.min(size, 4);
-  const words = store.pickRound(pool, Math.min(size, pool.length));
+  const round = store.pickRound(pool, Math.min(size, pool.length));
 
   const progress = h('div', { class: 'progress' });
   const body = h('div', { class: 'body game-body' });
@@ -156,8 +159,8 @@ function startGame(modeKey, catId) {
 
   const ctx = {
     body,
-    words,
-    pool: WORDS,
+    words: round,
+    pool: words,
     settings: store.settings(),
     sfx,
     alive: () => token === gameToken,
@@ -217,97 +220,6 @@ function stickerBook() {
   show(h('div', { class: 'screen' },
     backBar(home, h('div', { class: 'title' }, `📒 ${owned.size}/${STICKERS.length}`)),
     h('div', { class: 'body' }, grid)));
-}
-
-// ---------- Parent corner ----------
-function parentCorner() {
-  const s = store.settings();
-  const section = (title, ...kids) => h('section', { class: 'p-section' }, h('h3', {}, title), ...kids);
-
-  // Voice
-  const voiceInfo = h('div', { class: 'p-voice' });
-  const renderVoice = () => {
-    const list = speech.cantoneseVoices();
-    const cur = speech.currentVoice();
-    if (!speech.supported()) {
-      voiceInfo.replaceChildren(h('p', { class: 'p-warn' }, '呢個瀏覽器唔支援語音。請用 Safari（iPhone）或 Chrome（Android）。'));
-      return;
-    }
-    if (!list.length) {
-      voiceInfo.replaceChildren(h('div', { class: 'p-warn' },
-        h('p', {}, '搵唔到廣東話聲音。安裝方法：'),
-        h('p', {}, 'iPhone / iPad：設定 › 輔助使用 › 朗讀內容 › 聲音 › 中文 › 中文（香港），下載一把聲音。'),
-        h('p', {}, 'Android：設定 › 文字轉語音輸出 › Google 語音服務 › 安裝語音數據 › 粵語（香港）。'),
-        h('p', {}, '安裝後重新開啟呢個網頁。')));
-      return;
-    }
-    const select = h('select', {
-      onchange: e => { store.setSetting('voiceURI', e.target.value); applySettings(); speech.speak('你好！我哋一齊認字。'); },
-    }, list.map(v => h('option', { value: v.voiceURI, selected: cur && v.voiceURI === cur.voiceURI }, `${v.name} (${v.lang})`)));
-    voiceInfo.replaceChildren(h('label', { class: 'p-row' }, '聲音', select));
-  };
-  renderVoice();
-  const offVoices = speech.onChange(renderVoice);
-
-  const rate = h('input', { type: 'range', min: '0.5', max: '1.2', step: '0.05', value: s.rate });
-  rate.addEventListener('change', () => { store.setSetting('rate', Number(rate.value)); applySettings(); speech.speak('貓'); });
-
-  const toggle = (label, key, after) => {
-    const box = h('input', { type: 'checkbox', checked: s[key] });
-    box.addEventListener('change', () => { store.setSetting(key, box.checked); after && after(); });
-    return h('label', { class: 'p-row' }, label, box);
-  };
-
-  const sizes = h('div', { class: 'p-seg' }, [4, 6, 8].map(n => {
-    const b = h('button', { class: s.roundSize === n ? 'on' : '' }, String(n));
-    b.addEventListener('click', () => {
-      store.setSetting('roundSize', n);
-      sizes.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
-    });
-    return b;
-  }));
-
-  const onCats = new Set(s.cats || CATEGORIES.map(c => c.id));
-  const catBoxes = h('div', { class: 'p-cats' }, CATEGORIES.map(c => {
-    const count = WORDS.filter(w => w.cat === c.id).length;
-    const box = h('input', { type: 'checkbox', checked: onCats.has(c.id) });
-    box.addEventListener('change', () => {
-      if (box.checked) onCats.add(c.id); else onCats.delete(c.id);
-      if (!onCats.size) { onCats.add(c.id); box.checked = true; return; }
-      store.setSetting('cats', onCats.size === CATEGORIES.length ? null : [...onCats]);
-    });
-    return h('label', { class: 'p-cat' }, box, `${c.emoji} ${c.name} (${count})`);
-  }));
-
-  const reset = h('button', { class: 'p-danger', onclick: () => {
-    if (confirm('確定要清除所有星星、貼紙同學習紀錄？（設定會保留）')) {
-      store.resetProgress();
-      alert('已清除。');
-    }
-  } }, '清除進度');
-
-  const leave = () => { offVoices(); home(); };
-
-  show(h('div', { class: 'screen parent' },
-    h('div', { class: 'topbar' },
-      h('button', { class: 'icon-btn', 'aria-label': '返回', onclick: leave }, '🏠'),
-      h('div', { class: 'title' }, '家長設定'),
-      h('div', {})),
-    h('div', { class: 'body' },
-      section('🔊 廣東話聲音',
-        voiceInfo,
-        h('label', { class: 'p-row' }, '語速', rate),
-        h('button', { class: 'p-btn', onclick: () => speech.speak('貓、狗、蘋果、飛機') }, '試聽')),
-      section('🎮 遊戲',
-        toggle('顯示粵拼 (Jyutping)', 'jyutping'),
-        toggle('音效', 'sound', applySettings),
-        h('div', { class: 'p-row' }, '每回合卡數', sizes)),
-      section('📚 字卡類別', catBoxes),
-      section('📊 進度',
-        h('p', {}, `⭐ ${store.stars()}　📒 ${store.stickers().length}/${STICKERS.length}`),
-        reset),
-      h('p', { class: 'p-foot' }, '小貼士：每日玩 5–10 分鐘就夠。錯咗會自動多啲出現。'),
-    )));
 }
 
 // ---------- Boot ----------

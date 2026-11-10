@@ -27,4 +27,6 @@ The game uses the phone's built-in Cantonese voice:
 - **Android**: Settings › Text-to-speech output › Speech Services by Google › Install voice data › Cantonese (Hong Kong).
 
 ## Add your own words
-Edit `js/words.js`. Each line looks like `['貓', 'maau1', '🐱']`: the character, its Jyutping and an emoji. After that, bump `VERSION` in `sw.js` so phones pick up the change.
+**On the phone:** open the parent corner and use **✏️ 自己加字**. Type 1–4 Chinese characters, then add an emoji or take/choose a photo. Jyutping, category and a "讀法" (spelling for the voice to read, if it mispronounces the word) are optional. Words go into **💖 我的字** by default, or any existing category. They're saved on that phone only, and resetting progress keeps them.
+
+**In the code:** edit `js/words.js`. Each line looks like `['貓', 'maau1', '🐱']`: the character, its Jyutping and an emoji. After that, bump `VERSION` in `sw.js` so phones pick up the change.

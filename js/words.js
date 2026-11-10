@@ -20,6 +20,9 @@ export const CATEGORIES = [
   { id: 'things',  name: '物件', emoji: '🚗', color: '#90A4AE' },
 ];
 
+// Category for words a parent adds in the parent corner.
+export const MY_CATEGORY = { id: 'mine', name: '我的字', emoji: '💖', color: '#F06292' };
+
 const w = (cat, list) => list.map(([char, jyutping, emoji, extra = {}]) => ({
   id: `${cat}-${char}`, cat, char, jyutping, emoji, say: char, ...extra,
 }));
