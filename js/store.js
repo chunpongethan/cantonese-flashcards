@@ -54,13 +54,84 @@ function load() {
 
 let data = load();
 
-function save() {
+// Cloud sync listens for saves (see sync.js). Changes that came FROM the cloud
+// are saved quietly so they aren't sent straight back.
+let onSaveHook = null;
+export const onSave = fn => { onSaveHook = fn; };
+
+function save(quiet = false) {
+  let ok = true;
   try {
     localStorage.setItem(KEY, JSON.stringify(data));
-    return true;
   } catch (e) {
-    return false;
+    ok = false;
   }
+  if (!quiet && onSaveHook) onSaveHook();
+  return ok;
+}
+
+// ---------- Cloud sync: what is shared between linked phones ----------
+// Voices are different on every phone, so they stay on this device.
+const LOCAL_ONLY_SETTINGS = ['voiceURI', 'enVoiceURI'];
+const PHOTO_PLACEHOLDER = '🖼️';
+
+// Plain JSON copy (drops undefined values, which the cloud can't store).
+const plain = x => JSON.parse(JSON.stringify(x));
+
+export function exportSections() {
+  const settings = { ...data.settings };
+  LOCAL_ONLY_SETTINGS.forEach(k => delete settings[k]);
+  const words = data.customWords.map(w => {
+    const { img, photoPending, ...rest } = w;
+    if (!img && !photoPending) return rest;
+    // Photos travel separately; the word just says it has one.
+    return { ...rest, emoji: photoPending && rest.emoji === PHOTO_PLACEHOLDER ? '' : rest.emoji, photo: true };
+  });
+  return plain({
+    settings,
+    gifts: data.gifts,
+    words,
+    progress: { stars: data.stars, daily: data.daily, stickers: data.stickers, stats: data.stats },
+    redemptions: data.redemptions,
+  });
+}
+
+// Apply sections that came from the cloud.
+export function importSections(sec) {
+  if (sec.settings) {
+    const local = Object.fromEntries(LOCAL_ONLY_SETTINGS.map(k => [k, data.settings[k]]));
+    data.settings = { ...defaults().settings, ...sec.settings, ...local };
+  }
+  if (sec.gifts) data.gifts = sec.gifts;
+  if (sec.words) {
+    const imgs = Object.fromEntries(data.customWords.filter(w => w.img).map(w => [w.id, w.img]));
+    data.customWords = sec.words.map(({ photo, ...w }) => {
+      if (imgs[w.id]) return { ...w, img: imgs[w.id] };
+      if (photo) return { ...w, emoji: w.emoji || PHOTO_PLACEHOLDER, photoPending: true };
+      return w;
+    });
+  }
+  if (sec.progress) {
+    const p = sec.progress;
+    if (p.stars !== undefined) data.stars = p.stars;
+    if (p.daily) data.daily = p.daily;
+    if (p.stickers) data.stickers = p.stickers;
+    if (p.stats) data.stats = p.stats;
+  }
+  if (sec.redemptions) data.redemptions = sec.redemptions;
+  save(true);
+}
+
+// Words whose photo is in the cloud but not yet on this phone.
+export const wordsMissingPhotos = () => data.customWords.filter(w => w.photoPending).map(w => w.id);
+
+export function setWordPhoto(id, img) {
+  const w = data.customWords.find(x => x.id === id);
+  if (!w) return;
+  w.img = img;
+  delete w.photoPending;
+  if (w.emoji === PHOTO_PLACEHOLDER) w.emoji = '';
+  save(true);
 }
 
 const newId = prefix => `${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`;

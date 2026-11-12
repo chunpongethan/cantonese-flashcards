@@ -4,6 +4,7 @@ import * as speech from './speech.js';
 import * as store from './store.js';
 import { h, pic } from './ui.js';
 import { allWords, allCategories, categoryOptions } from './catalog.js';
+import * as sync from './sync.js';
 
 const HANZI_RE = /^[㐀-䶿一-鿿豈-﫿]{1,4}$/u;
 
@@ -177,6 +178,7 @@ export function parentCorner({ show, leave, applySettings }) {
       h('div', { class: 'title' }, '家長設定'),
       h('div', {})),
     h('div', { class: 'body' },
+      section('☁️ 雲端同步', cloudSection(() => { applySettings(); parentCorner({ show, leave, applySettings }); })),
       section('🔊 廣東話聲音',
         voiceInfo,
         h('label', { class: 'p-row' }, '語速', rate),
@@ -205,6 +207,83 @@ export function parentCorner({ show, leave, applySettings }) {
       section('📊 進度', progressLine, reset),
       h('p', { class: 'p-foot' }, '小貼士：每日玩 5–10 分鐘就夠。錯咗會自動多啲出現。'),
     )));
+}
+
+// ☁️ Cloud sync: link phones with a family code.
+function cloudSection(reopen) {
+  const box = h('div', { class: 'p-form' });
+  const STATUS = {
+    off: '未連結',
+    connecting: '連接中…',
+    syncing: '同步中…',
+    synced: '已同步 ✔',
+    offline: '離線：上網後會自動同步',
+    error: '同步出錯',
+  };
+  const ERRORS = {
+    'bad-code': '代碼應該係 16 個英文字母同數字',
+    'not-found': '搵唔到呢個代碼，請檢查清楚',
+  };
+
+  function render() {
+    if (!sync.configured()) {
+      box.replaceChildren(h('p', { class: 'p-muted' }, '雲端同步未設定（需要 Firebase 設定）。'));
+      return;
+    }
+    const code = sync.familyCode();
+    const msg = h('div', { class: 'p-msg' });
+    const fail = e => { msg.textContent = ERRORS[e.message] || `出錯：${e.message}`; msg.classList.add('bad'); };
+
+    if (!code) {
+      const codeIn = h('input', { class: 'p-input p-code-in', placeholder: 'XXXX-XXXX-XXXX-XXXX', autocomplete: 'off', autocapitalize: 'characters', spellcheck: 'false' });
+      const createBtn = h('button', { class: 'p-btn p-primary', onclick: async () => {
+        createBtn.disabled = true;
+        try { await sync.createFamily(); render(); } catch (e) { fail(e); createBtn.disabled = false; }
+      } }, '建立家庭代碼');
+      const joinBtn = h('button', { class: 'p-btn', onclick: async () => {
+        if (!confirm('連結之後，呢部機嘅設定、禮物、自己加嘅字、星星同紀錄會換成雲端嗰份。繼續？')) return;
+        joinBtn.disabled = true;
+        try { await sync.joinFamily(codeIn.value); reopen(); } catch (e) { fail(e); joinBtn.disabled = false; }
+      } }, '連結');
+      box.replaceChildren(
+        h('p', { class: 'p-muted' }, '用同一個家庭代碼連結幾部手機，家長設定、禮物、自己加嘅字、星星同換領紀錄會自動同步。'),
+        h('p', {}, '第一部機：'),
+        createBtn,
+        h('p', {}, '其他手機：輸入第一部機嘅代碼'),
+        h('div', { class: 'p-pic-row' }, codeIn, joinBtn),
+        msg);
+      return;
+    }
+
+    const statusLine = h('div', { class: 'p-sync-status' });
+    const showStatus = () => {
+      const { status, detail } = sync.getStatus();
+      statusLine.textContent = `狀態：${STATUS[status] || status}${status === 'error' && detail ? `（${detail}）` : ''}`;
+      statusLine.dataset.status = status;
+    };
+    showStatus();
+    offStatus();
+    offStatus = sync.onStatus(() => { if (box.isConnected) showStatus(); else offStatus(); });
+
+    const copyBtn = h('button', { class: 'p-btn p-small', onclick: async () => {
+      try { await navigator.clipboard.writeText(sync.formatCode(code)); copyBtn.textContent = '已複製 ✔'; } catch { copyBtn.textContent = '請手動抄低'; }
+    } }, '複製');
+    box.replaceChildren(
+      h('p', { class: 'p-muted' }, '家庭代碼（喺其他手機輸入呢個代碼就可以連結）：'),
+      h('div', { class: 'p-code-row' }, h('div', { class: 'p-code' }, sync.formatCode(code)), copyBtn),
+      h('p', { class: 'p-muted' }, '⚠️ 代碼等於鎖匙，唔好俾外人睇到。'),
+      statusLine,
+      h('button', { class: 'p-btn', onclick: () => {
+        if (!confirm('呢部機唔再同步？（資料會留喺呢部機，雲端資料唔會刪除）')) return;
+        sync.unlink();
+        render();
+      } }, '取消連結'),
+      msg);
+  }
+
+  let offStatus = () => {};
+  render();
+  return box;
 }
 
 // Gift list the child can exchange stars for, plus the exchange record.

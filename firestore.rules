@@ -1,0 +1,21 @@
+rules_version = '2';
+
+// Daily Challenge cloud sync.
+// Each family's data lives at families/{CODE}. Only someone who knows the 16-character
+// family code can read or change it; nobody can list or delete families.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /families/{code} {
+      allow get, create, update: if request.auth != null && code.matches('^[A-Z0-9]{16}$');
+      allow list, delete: if false;
+
+      match /photos/{photoId} {
+        allow get, delete: if request.auth != null && code.matches('^[A-Z0-9]{16}$');
+        allow create, update: if request.auth != null && code.matches('^[A-Z0-9]{16}$')
+          && request.resource.data.data is string
+          && request.resource.data.data.size() < 600000;
+        allow list: if false;
+      }
+    }
+  }
+}

@@ -6,6 +6,7 @@ import { h, wiggle, confetti, pickOne } from './ui.js';
 import { allWords, enabledCategories, englishWords, englishCategories } from './catalog.js';
 import { parentCorner } from './parent.js';
 import { starBank } from './bank.js';
+import * as sync from './sync.js';
 import * as flipMode from './modes/flip.js';
 import * as pickMode from './modes/pick.js';
 import * as matchMode from './modes/match.js';
@@ -378,6 +379,14 @@ function stickerBook() {
 
 // ---------- Boot ----------
 splash();
+
+// Cloud sync: changes made on another linked phone show up here.
+sync.onRemoteChange(() => {
+  applySettings();
+  const badge = document.querySelector('#star-count b');
+  if (badge) badge.textContent = store.stars();
+});
+sync.start();
 
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
   window.addEventListener('load', () => {

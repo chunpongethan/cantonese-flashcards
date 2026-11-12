@@ -45,3 +45,10 @@ The game uses the phone's built-in Cantonese voice:
 **On the phone:** open the parent corner and use **✏️ 自己加字**. Type 1–4 Chinese characters, then add an emoji or take/choose a photo. Jyutping, category, an English word (so it also appears in English) and a "讀法" (spelling for the voice to read, if it mispronounces the word) are optional. Words go into **💖 我的字** by default, or any existing category. They're saved on that phone only, and resetting progress keeps them.
 
 **In the code:** edit `js/words.js`. Each line looks like `['貓', 'maau1', '🐱']`: the character, its Jyutping and an emoji. After that, bump `VERSION` in `sw.js` so phones pick up the change.
+
+## Cloud sync (☁️ 雲端同步)
+Linked phones share parent settings, gifts, your own words (with photos), stars, stickers and the exchange record. Voice choices stay per phone.
+- It uses **Firebase Firestore** (free). Put the project's web config in `js/firebase-config.js`, and paste `firestore.rules` into Firestore › Rules.
+- **First phone:** parent corner › ☁️ 雲端同步 › **建立家庭代碼**. **Other phones:** type that 16-character code and tap **連結** (that phone's data is replaced by the cloud copy).
+- Keep the family code private, because anyone with it can see and change your family's data.
+- If two phones change the same part at the same time, the later change wins.

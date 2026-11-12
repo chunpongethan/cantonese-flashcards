@@ -1,6 +1,6 @@
 // Offline support: app files are cached up front; fonts, Hanzi Writer and
 // stroke data are cached the first time they load.
-const VERSION = 'v8';
+const VERSION = 'v9';
 const APP_CACHE = `app-${VERSION}`;
 const RUNTIME_CACHE = `runtime-${VERSION}`;
 
@@ -15,6 +15,8 @@ const APP_FILES = [
   'js/speech.js',
   'js/sfx.js',
   'js/store.js',
+  'js/sync.js',
+  'js/firebase-config.js',
   'js/catalog.js',
   'js/parent.js',
   'js/bank.js',
@@ -28,7 +30,7 @@ const APP_FILES = [
   'icons/icon-512.png',
 ];
 
-const RUNTIME_HOSTS = ['cdn.jsdelivr.net', 'fonts.googleapis.com', 'fonts.gstatic.com'];
+const RUNTIME_HOSTS = ['cdn.jsdelivr.net', 'fonts.googleapis.com', 'fonts.gstatic.com', 'www.gstatic.com'];
 
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(APP_CACHE).then(c => c.addAll(APP_FILES)).then(() => self.skipWaiting()));

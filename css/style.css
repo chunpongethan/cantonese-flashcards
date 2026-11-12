@@ -674,6 +674,19 @@ button:active { transform: scale(.96); }
   50% { background: #FFF59D; box-shadow: 0 0 0 6px #FFCA28, 0 5px 0 #D7CCC8; transform: scale(1.1); }
 }
 
+/* ---------- Parent corner: cloud sync ---------- */
+.p-code-row { display: flex; align-items: center; gap: 10px; }
+.p-code {
+  flex: 1; font: 700 20px ui-monospace, 'SFMono-Regular', Consolas, monospace;
+  letter-spacing: 1px; background: #FFF8E1; border-radius: 10px; padding: 10px 12px;
+  -webkit-user-select: all; user-select: all;
+}
+.p-code-in { font-family: ui-monospace, Consolas, monospace; text-transform: uppercase; }
+.p-sync-status { font-size: 15px; }
+.p-sync-status[data-status="synced"] { color: #2E7D32; }
+.p-sync-status[data-status="error"] { color: #C62828; }
+.p-sync-status[data-status="offline"] { color: #8D6E63; }
+
 /* ---------- Confetti ---------- */
 #fx { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 10; }
 .confetti {
