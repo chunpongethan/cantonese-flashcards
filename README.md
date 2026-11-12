@@ -14,6 +14,10 @@ The home screen has three subjects: **📖 中文**, **🔤 English** and **🔢
 - **📝 填字 (fill-in)**: pick the right character for the blank in a short sentence, using each lesson's character pair plus one extra.
 - To add a new lesson from the school book, add an entry to `LESSONS` in `js/lessons.js` (radical, two characters, a sentence for each), and add the characters to the `school` list in `js/words.js`.
 - **🔤 English**: Flip Cards, Listen & Pick ("Which one is cat?"), Match and **🔡 Spelling**, using the same pictures and categories with English words and an English voice (British accent preferred). Flip cards show the Chinese word as a small hint.
+- **🎒 English Class**: an English card category with the words from the school English book (daily routine, zoo animals, space, rooms at home, clock). It works in Flip Cards, Listen & Pick, Match and Spelling. **eleven** and **twelve** are in Numbers.
+- **📝 Fill In (English)**: a sentence with a blank and a picture clue; pick the word from 3 choices in the same topic. The sentences are written for the app.
+- **🕒 Clock & Numbers**: read a clock ("What time is it?" → "nine o'clock") or match a number to its word (8 → "eight"), for 1–12.
+- To add new English book words or sentences, edit `js/english-lessons.js`.
 - **🔡 Spelling**: see the picture, hear "Spell cat.", then tap the letter tiles in order. 💡 shows the next letter, and after 2 wrong taps the right tile glows by itself. Each word earns +1 ⭐ and loses at most 1 ⭐.
 - **🔢 數學 Maths**: adding and taking away. Tap the right answer from 3–4 choices. 1-digit questions show apples to count; 2–3 digit questions are laid out in columns (豎式).
 

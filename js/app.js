@@ -17,6 +17,9 @@ import * as spellMode from './modes/spell.js';
 import * as radicalMode from './modes/radical.js';
 import * as fillMode from './modes/fill.js';
 import { RADICAL_CHARS, FILL_ITEMS } from './lessons.js';
+import { EN_FILL, CLOCK_ITEMS } from './english-lessons.js';
+import * as enFillMode from './modes/enfill.js';
+import * as clockMode from './modes/clock.js';
 
 const MODES = {
   flip:  { name: '翻翻卡',   icon: '🃏', color: '#FF8A65', mod: flipMode },
@@ -34,6 +37,9 @@ const EN_MODES = {
   pick:  { name: 'Listen & Pick', icon: '👂', color: '#4FC3F7', mod: pickMode },
   match: { name: 'Match',         icon: '🧩', color: '#AED581', mod: matchMode },
   spell: { name: 'Spelling',      icon: '🔡', color: '#BA68C8', mod: spellMode },
+  // School English book games: no category picker.
+  fill:  { name: 'Fill In',          icon: '📝', color: '#26A69A', mod: enFillMode, items: EN_FILL },
+  clock: { name: 'Clock & Numbers',  icon: '🕒', color: '#FFB300', mod: clockMode, items: CLOCK_ITEMS },
 };
 
 // English words that fit the spelling game, given the parent's length setting.
@@ -165,10 +171,10 @@ function chooseChinese() {
 }
 
 // 部首 / 填字: a round picked from the school lessons (missed ones come up more).
-function startLessonGame(key) {
-  const m = MODES[key];
+function startLessonGame(key, lang = 'zh') {
+  const m = (lang === 'en' ? EN_MODES : MODES)[key];
   const round = store.pickRound(m.items, Math.min(store.settings().roundSize, m.items.length));
-  playScreen(key, m.mod, { words: round, pool: m.items, lang: 'zh' }, () => startLessonGame(key));
+  playScreen(key, m.mod, { words: round, pool: m.items, lang }, () => startLessonGame(key, lang));
 }
 
 // Parent corner opens only after holding the button for 2 seconds.
@@ -264,7 +270,10 @@ function startMaths(op) {
 
 // ---------- English: pick a game ----------
 function chooseEnglish() {
-  gameList('🔤 English', EN_MODES, (key, m) => { sayEn(m.name); chooseCategory(key, 'en'); });
+  gameList('🔤 English', EN_MODES, (key, m) => {
+    sayEn(m.name);
+    if (m.items) startLessonGame(key, 'en'); else chooseCategory(key, 'en');
+  });
 }
 
 // ---------- Game ----------
@@ -272,7 +281,7 @@ function startGame(modeKey, catId, lang = 'zh') {
   const m = (lang === 'en' ? EN_MODES : MODES)[modeKey];
   let words = lang === 'en' ? englishWords() : allWords();
   if (modeKey === 'spell') words = spellWords(words);
-  const cats = enabledCategories().map(c => c.id);
+  const cats = (lang === 'en' ? englishCategories() : enabledCategories()).map(c => c.id);
   const seenChars = new Set();
   const pool = words
     .filter(w => (catId === 'all' ? cats.includes(w.cat) : w.cat === catId))
