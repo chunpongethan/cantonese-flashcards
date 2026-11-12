@@ -19,7 +19,10 @@ const defaults = () => ({
     voiceURI: '',
     sound: true,
     dailyCap: 20,      // most stars that can be earned per day (0 = no limit)
-    wrongPenalty: true, // lose 1 star for a wrong answer in Listen & Pick
+    wrongPenalty: true, // lose 1 star for a wrong answer (Listen & Pick, Maths)
+    mathDigits: 1,     // maths numbers up to 1, 2 or 3 digits
+    mathAdd: true,
+    mathSub: true,
   },
   stars: 0,            // the star bank balance
   daily: { date: '', earned: 0 },

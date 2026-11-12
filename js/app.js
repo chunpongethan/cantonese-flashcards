@@ -10,6 +10,7 @@ import * as flipMode from './modes/flip.js';
 import * as pickMode from './modes/pick.js';
 import * as matchMode from './modes/match.js';
 import * as traceMode from './modes/trace.js';
+import * as mathsMode from './modes/maths.js';
 
 const MODES = {
   flip:  { name: '翻翻卡',   icon: '🃏', color: '#FF8A65', mod: flipMode },
@@ -99,7 +100,12 @@ function home() {
       starBadge()),
     h('div', { class: 'body' },
       warn,
-      h('div', { class: 'mode-grid' }, tiles),
+      h('div', { class: 'mode-grid' }, tiles,
+        h('button', {
+          class: 'mode-tile wide',
+          style: { background: '#FFB300' },
+          onclick: () => { sfx.tap(); say('數學'); chooseMaths(); },
+        }, h('div', { class: 'mode-icon' }, '🔢'), h('div', { class: 'mode-name' }, '數學 ＋ −'))),
       h('div', { class: 'home-row' },
         h('button', {
           class: 'sticker-btn bank-btn',
@@ -160,6 +166,42 @@ function chooseCategory(modeKey) {
   ));
 }
 
+// ---------- Maths: pick adding / taking away ----------
+const MATH_OPS = {
+  '+': { name: '加數', icon: '➕', color: '#FF8A65' },
+  '-': { name: '減數', icon: '➖', color: '#4FC3F7' },
+  mix: { name: '加減混合', icon: '🔀', color: '#BA68C8' },
+};
+
+function enabledMathOps() {
+  const s = store.settings();
+  const ops = [];
+  if (s.mathAdd) ops.push('+');
+  if (s.mathSub) ops.push('-');
+  if (ops.length === 2) ops.push('mix');
+  return ops.length ? ops : ['+'];
+}
+
+function chooseMaths() {
+  const ops = enabledMathOps();
+  if (ops.length === 1) { startMaths(ops[0]); return; }
+  const digits = store.settings().mathDigits;
+  const tiles = ops.map(op => h('button', {
+    class: 'cat-tile math-op',
+    style: { background: MATH_OPS[op].color },
+    onclick: () => { sfx.tap(); say(MATH_OPS[op].name); startMaths(op); },
+  }, h('div', { class: 'cat-icon' }, MATH_OPS[op].icon), h('div', { class: 'cat-name' }, MATH_OPS[op].name)));
+  show(h('div', { class: 'screen' },
+    backBar(home, h('div', { class: 'title' }, `🔢 數學`)),
+    h('div', { class: 'body' },
+      h('div', { class: 'math-level' }, `${digits} 位數（0–${10 ** digits - 1}）`),
+      h('div', { class: 'math-op-grid' }, tiles))));
+}
+
+function startMaths(op) {
+  playScreen('maths', mathsMode, { op, words: [], pool: [] }, () => startMaths(op));
+}
+
 // ---------- Game ----------
 function startGame(modeKey, catId) {
   const m = MODES[modeKey];
@@ -170,7 +212,11 @@ function startGame(modeKey, catId) {
   let size = store.settings().roundSize;
   if (modeKey === 'trace') size = Math.min(size, 4);
   const round = store.pickRound(pool, Math.min(size, pool.length));
+  playScreen(modeKey, m.mod, { words: round, pool: words }, () => startGame(modeKey, catId));
+}
 
+// Shared game screen: top bar with progress, star rules, and the reward at the end.
+function playScreen(modeKey, mod, extra, replay) {
   const progress = h('div', { class: 'progress' });
   const body = h('div', { class: 'body game-body' });
   show(h('div', { class: `screen game mode-${modeKey}` },
@@ -183,9 +229,8 @@ function startGame(modeKey, catId) {
   let capHit = false;
 
   const ctx = {
+    ...extra,
     body,
-    words: round,
-    pool: words,
     settings: store.settings(),
     sfx,
     alive: () => token === gameToken,
@@ -218,13 +263,13 @@ function startGame(modeKey, catId) {
       progress.replaceChildren(...Array.from({ length: total }, (_, k) =>
         h('span', { class: k < i ? 'dot done' : k === i ? 'dot now' : 'dot' })));
     },
-    done: () => { if (token === gameToken) reward(modeKey, catId, { gained: roundStars, lost: roundLost }); },
+    done: () => { if (token === gameToken) reward({ gained: roundStars, lost: roundLost, replay }); },
   };
-  m.mod.start(ctx);
+  mod.start(ctx);
 }
 
 // ---------- Reward ----------
-async function reward(modeKey, catId, { gained, lost }) {
+async function reward({ gained, lost, replay }) {
   const full = store.capReached();
   const { sticker, isNew } = gained > 0 ? store.addSticker(STICKERS) : { sticker: null };
   const starRow = h('div', { class: 'reward-stars' },
@@ -243,7 +288,7 @@ async function reward(modeKey, catId, { gained, lost }) {
         h('div', { class: 'sticker-big' }, sticker),
         h('div', { class: 'sticker-note' }, isNew ? '新貼紙！' : '貼紙')) : null,
       h('div', { class: 'reward-actions' },
-        h('button', { class: 'big-btn', 'aria-label': '再玩', onclick: () => { sfx.tap(); startGame(modeKey, catId); } }, '🔁'),
+        h('button', { class: 'big-btn', 'aria-label': '再玩', onclick: () => { sfx.tap(); replay(); } }, '🔁'),
         h('button', { class: 'big-btn', 'aria-label': '返主頁', onclick: () => { sfx.tap(); home(); } }, '🏠')),
     )));
   const token = gameToken;

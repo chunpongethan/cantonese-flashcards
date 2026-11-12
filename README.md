@@ -7,18 +7,20 @@ A phone-friendly flash card game for a young child learning to read Traditional 
 - **聽聽揀揀 Listen & Pick**: hear 「邊個係…字？」 and tap the right character.
 - **配對遊戲 Matching Pairs**: match each picture card with its character card.
 - **寫寫字 Tracing**: watch the stroke order, then trace the character with a finger. This mode needs internet the first time.
+- **🔢 數學 Maths**: adding and taking away. Tap the right answer from 3–4 choices. 1-digit questions show apples to count; 2–3 digit questions are laid out in columns (豎式).
 
 Every round ends with stars and a new sticker for the sticker book (📒).
 
 ## Stars and gifts
 - Each right answer (or flipped card, matched pair, traced word) earns 1 ⭐, up to a **daily limit** (20 by default). Stars lost for wrong answers don't free up room under the limit.
-- In 聽聽揀揀 (Listen & Pick), each **wrong answer loses 1 ⭐**. The bank never goes below 0.
+- In 聽聽揀揀 (Listen & Pick) and 數學 (Maths), each **wrong answer loses 1 ⭐**. The bank never goes below 0.
 - Stars are kept in the **⭐ 星星銀行** (star bank) on the home screen, where the child can swap them for gifts. Each swap asks the child to confirm first.
 
 ## Parent corner
 Press and hold ⚙️ on the home screen for 2 seconds. There you can:
 - choose the voice and speed, turn Jyutping on or off, set cards per round, pick categories, and reset progress;
 - **⭐ 星星規則 (star rules):** set the daily star limit (or 不限 for no limit) and turn star loss for wrong answers on or off;
+- **🔢 數學 (maths):** numbers up to 1, 2 or 3 digits (0–9 / 0–99 / 0–999), and turn 加數 (adding) and 減數 (taking away) on or off;
 - **🎁 禮物 (gifts):** add gifts (emoji, name, star cost), change a gift's cost or delete it, and see the exchange record. Mark each gift **已俾** (given) when you hand it over, or **退還** (refund) to put the stars back if it was tapped by mistake.
 
 ## Run it

@@ -97,6 +97,27 @@ export function parentCorner({ show, leave, applySettings }) {
   renderStarInfo();
   capSel.addEventListener('change', () => { store.setSetting('dailyCap', Number(capSel.value)); renderStarInfo(); });
 
+  // ----- Maths -----
+  const digitSeg = h('div', { class: 'p-seg' }, [1, 2, 3].map(n => {
+    const b = h('button', { class: s.mathDigits === n ? 'on' : '' }, `${n} 位`);
+    b.addEventListener('click', () => {
+      store.setSetting('mathDigits', n);
+      digitSeg.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+      digitHint.textContent = `數字範圍：0–${10 ** n - 1}`;
+    });
+    return b;
+  }));
+  const digitHint = h('p', { class: 'p-muted' }, `數字範圍：0–${10 ** s.mathDigits - 1}`);
+  const opToggle = (label, key, otherKey) => {
+    const box = h('input', { type: 'checkbox', checked: s[key] });
+    box.addEventListener('change', () => {
+      // Keep at least one of adding / taking away switched on.
+      if (!box.checked && !store.settings()[otherKey]) { box.checked = true; return; }
+      store.setSetting(key, box.checked);
+    });
+    return h('label', { class: 'p-row' }, label, box);
+  };
+
   // ----- Categories -----
   const catBox = h('div', { class: 'p-cats' });
   const renderCats = () => {
@@ -149,8 +170,13 @@ export function parentCorner({ show, leave, applySettings }) {
         h('div', { class: 'p-row' }, '每回合卡數', sizes)),
       section('⭐ 星星規則',
         h('label', { class: 'p-row' }, '每日最多攞幾多粒星', capSel),
-        toggle('「聽聽揀揀」答錯扣一粒星', 'wrongPenalty'),
+        toggle('答錯扣一粒星（聽聽揀揀、數學）', 'wrongPenalty'),
         starInfo),
+      section('🔢 數學',
+        h('div', { class: 'p-row' }, '最多幾位數', digitSeg),
+        digitHint,
+        opToggle('➕ 加數', 'mathAdd', 'mathSub'),
+        opToggle('➖ 減數', 'mathSub', 'mathAdd')),
       section('🎁 禮物', giftsUI.el),
       section('✏️ 自己加字', customWords(renderCats)),
       section('📚 字卡類別', catBox),
