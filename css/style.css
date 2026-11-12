@@ -96,7 +96,12 @@ button:active { transform: scale(.96); }
 
 /* ---------- Splash ---------- */
 .splash { align-items: center; justify-content: center; gap: 28px; }
-.splash-title { font-size: 52px; font-weight: 700; letter-spacing: 4px; }
+.splash-title {
+  font: 800 clamp(44px, 14vw, 64px) / 1.05 'Nunito', system-ui, sans-serif;
+  text-align: center;
+  padding: 0 16px;
+  color: var(--ink);
+}
 .splash-pics { font-size: 44px; }
 .play-btn {
   width: 140px; height: 140px;
