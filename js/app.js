@@ -5,6 +5,7 @@ import * as store from './store.js';
 import { h, wiggle, confetti, pickOne } from './ui.js';
 import { allWords, enabledCategories } from './catalog.js';
 import { parentCorner } from './parent.js';
+import { starBank } from './bank.js';
 import * as flipMode from './modes/flip.js';
 import * as pickMode from './modes/pick.js';
 import * as matchMode from './modes/match.js';
@@ -39,11 +40,28 @@ function starBadge() {
   return h('div', { class: 'star-badge', id: 'star-count' }, '⭐ ', h('b', {}, store.stars()));
 }
 
-function bumpStars() {
+function bumpStars(lost = false) {
   const el = document.querySelector('#star-count b');
   if (!el) return;
   el.textContent = store.stars();
-  wiggle(el.parentElement);
+  const badge = el.parentElement;
+  badge.classList.toggle('lost', lost);
+  wiggle(badge);
+  if (lost) {
+    const r = badge.getBoundingClientRect();
+    const minus = h('div', { class: 'minus-star' }, '−1 ⭐');
+    minus.style.left = `${r.left + r.width / 2}px`;
+    minus.style.top = `${r.bottom}px`;
+    document.getElementById('fx').append(minus);
+    setTimeout(() => minus.remove(), 1300);
+  }
+}
+
+// A short message that slides in under the top bar.
+function toast(text) {
+  const t = h('div', { class: 'toast' }, text);
+  document.getElementById('fx').append(t);
+  setTimeout(() => t.remove(), 2600);
 }
 
 // ---------- Splash (first tap unlocks sound on phones) ----------
@@ -82,10 +100,15 @@ function home() {
     h('div', { class: 'body' },
       warn,
       h('div', { class: 'mode-grid' }, tiles),
-      h('button', {
-        class: 'sticker-btn',
-        onclick: () => { sfx.tap(); say('我嘅貼紙'); stickerBook(); },
-      }, '📒 我嘅貼紙 ', h('span', { class: 'pill' }, `${store.stickers().length}/${STICKERS.length}`)),
+      h('div', { class: 'home-row' },
+        h('button', {
+          class: 'sticker-btn bank-btn',
+          onclick: () => { sfx.tap(); openBank(); },
+        }, '⭐ 星星銀行'),
+        h('button', {
+          class: 'sticker-btn',
+          onclick: () => { sfx.tap(); say('我嘅貼紙'); stickerBook(); },
+        }, '📒 貼紙 ', h('span', { class: 'pill' }, `${store.stickers().length}/${STICKERS.length}`))),
     ),
   ));
 }
@@ -156,6 +179,8 @@ function startGame(modeKey, catId) {
 
   const token = gameToken;
   let roundStars = 0;
+  let roundLost = 0;
+  let capHit = false;
 
   const ctx = {
     body,
@@ -172,27 +197,48 @@ function startGame(modeKey, catId) {
     level: id => store.rightCount(id),
     seen: w => store.markSeen(w.id),
     record: (w, ok) => store.record(w.id, ok),
-    star: () => { roundStars++; store.addStars(1); bumpStars(); },
+    star: () => {
+      if (store.earnStar()) {
+        roundStars++;
+        bumpStars();
+      } else if (!capHit) {
+        capHit = true;
+        toast('今日嘅星星已經儲滿喇 ✔');
+      }
+    },
+    // Wrong answer: lose a star (if the parent has this rule on).
+    lose: () => {
+      if (!store.settings().wrongPenalty) return;
+      if (store.loseStar()) {
+        roundLost++;
+        bumpStars(true);
+      }
+    },
     progress: (i, total) => {
       progress.replaceChildren(...Array.from({ length: total }, (_, k) =>
         h('span', { class: k < i ? 'dot done' : k === i ? 'dot now' : 'dot' })));
     },
-    done: () => { if (token === gameToken) reward(modeKey, catId, roundStars); },
+    done: () => { if (token === gameToken) reward(modeKey, catId, { gained: roundStars, lost: roundLost }); },
   };
   m.mod.start(ctx);
 }
 
 // ---------- Reward ----------
-async function reward(modeKey, catId, roundStars) {
-  const { sticker, isNew } = roundStars > 0 ? store.addSticker(STICKERS) : { sticker: null };
+async function reward(modeKey, catId, { gained, lost }) {
+  const full = store.capReached();
+  const { sticker, isNew } = gained > 0 ? store.addSticker(STICKERS) : { sticker: null };
   const starRow = h('div', { class: 'reward-stars' },
-    Array.from({ length: Math.min(roundStars, 10) }, (_, i) =>
+    Array.from({ length: Math.min(gained, 10) }, (_, i) =>
       h('span', { style: { animationDelay: `${i * 0.12}s` } }, '⭐')));
   show(h('div', { class: 'screen reward' },
     h('div', { class: 'body' },
       h('div', { class: 'reward-title' }, '好叻呀！'),
       starRow,
-      h('div', { class: 'reward-count' }, `+${roundStars} ⭐`),
+      h('div', { class: 'reward-count' },
+        `+${gained} ⭐`,
+        lost ? h('span', { class: 'reward-lost' }, `  −${lost}`) : null),
+      full ? h('div', { class: 'reward-full' }, '今日嘅星星儲滿喇！聽日再嚟 🌙') : null,
+      h('div', { class: 'reward-bank' }, `銀行：⭐ ${store.stars()}`),
       sticker ? h('div', { class: 'reward-sticker' },
         h('div', { class: 'sticker-big' }, sticker),
         h('div', { class: 'sticker-note' }, isNew ? '新貼紙！' : '貼紙')) : null,
@@ -203,8 +249,14 @@ async function reward(modeKey, catId, roundStars) {
   const token = gameToken;
   sfx.fanfare();
   confetti(40);
-  await speech.speak(`好叻呀！你攞咗${roundStars}粒星星！`);
-  if (sticker && token === gameToken) speech.speak(isNew ? '仲有一張新貼紙添！' : '再送你一張貼紙！');
+  await speech.speak(gained > 0 ? `好叻呀！你攞咗${gained}粒星星！` : '玩得好好呀！');
+  if (token !== gameToken) return;
+  if (full) speech.speak('今日嘅星星已經儲滿喇，聽日再嚟儲啦！');
+  else if (sticker) speech.speak(isNew ? '仲有一張新貼紙添！' : '再送你一張貼紙！');
+}
+
+function openBank() {
+  starBank({ show, header: right => backBar(home, h('div', { class: 'title' }, '星星銀行'), right), sfx });
 }
 
 // ---------- Sticker book ----------

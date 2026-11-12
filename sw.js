@@ -1,6 +1,6 @@
 // Offline support: app files are cached up front; fonts, Hanzi Writer and
 // stroke data are cached the first time they load.
-const VERSION = 'v3';
+const VERSION = 'v4';
 const APP_CACHE = `app-${VERSION}`;
 const RUNTIME_CACHE = `runtime-${VERSION}`;
 
@@ -17,6 +17,7 @@ const APP_FILES = [
   'js/store.js',
   'js/catalog.js',
   'js/parent.js',
+  'js/bank.js',
   'js/modes/flip.js',
   'js/modes/pick.js',
   'js/modes/match.js',

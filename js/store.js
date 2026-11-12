@@ -1,7 +1,14 @@
-// Progress, settings and the parent's own words, saved on this device (localStorage).
+// Progress, settings, the parent's own words, the star bank and gifts,
+// all saved on this device (localStorage).
 import { CATEGORIES } from './words.js';
 
 const KEY = 'cantonese-flashcards-v1';
+
+const DEFAULT_GIFTS = [
+  { id: 'g-cartoon', emoji: '📺', name: '睇卡通 15 分鐘', cost: 15 },
+  { id: 'g-icecream', emoji: '🍦', name: '雪糕', cost: 30 },
+  { id: 'g-toy', emoji: '🧸', name: '新玩具', cost: 100 },
+];
 
 const defaults = () => ({
   settings: {
@@ -11,11 +18,16 @@ const defaults = () => ({
     rate: 0.8,
     voiceURI: '',
     sound: true,
+    dailyCap: 20,      // most stars that can be earned per day (0 = no limit)
+    wrongPenalty: true, // lose 1 star for a wrong answer in Listen & Pick
   },
-  stars: 0,
+  stars: 0,            // the star bank balance
+  daily: { date: '', earned: 0 },
   stickers: [],
   stats: {},           // id -> { seen, right, wrong, last }
   customWords: [],     // words added in the parent corner
+  gifts: DEFAULT_GIFTS.map(g => ({ ...g })),
+  redemptions: [],     // gifts the child has exchanged stars for, newest first
 });
 
 function load() {
@@ -47,6 +59,8 @@ function save() {
   }
 }
 
+const newId = prefix => `${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`;
+
 export const settings = () => data.settings;
 export const stars = () => data.stars;
 export const stickers = () => data.stickers;
@@ -57,6 +71,85 @@ export function setSetting(key, value) {
   save();
 }
 
+// ---------- Star bank ----------
+function todayKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+}
+
+// Stars earned today (stars lost for wrong answers don't give room back).
+export const earnedToday = () => (data.daily.date === todayKey() ? data.daily.earned : 0);
+
+export function capReached() {
+  const cap = data.settings.dailyCap;
+  return cap > 0 && earnedToday() >= cap;
+}
+
+// Adds one star unless today's limit is reached. Returns true if a star was added.
+export function earnStar() {
+  if (capReached()) return false;
+  if (data.daily.date !== todayKey()) data.daily = { date: todayKey(), earned: 0 };
+  data.daily.earned++;
+  data.stars++;
+  save();
+  return true;
+}
+
+// Takes one star away (never below 0). Returns true if a star was taken.
+export function loseStar() {
+  if (data.stars <= 0) return false;
+  data.stars--;
+  save();
+  return true;
+}
+
+// ---------- Gifts ----------
+export const gifts = () => data.gifts;
+export const redemptions = () => data.redemptions;
+
+export function addGift({ emoji, name, cost }) {
+  data.gifts.push({ id: newId('g'), emoji, name, cost });
+  return save();
+}
+
+export function updateGift(id, changes) {
+  const g = data.gifts.find(x => x.id === id);
+  if (g) Object.assign(g, changes);
+  save();
+}
+
+export function removeGift(id) {
+  data.gifts = data.gifts.filter(g => g.id !== id);
+  save();
+}
+
+// Spend stars on a gift. Returns the record, or null if not enough stars.
+export function redeem(giftId) {
+  const g = data.gifts.find(x => x.id === giftId);
+  if (!g || data.stars < g.cost) return null;
+  data.stars -= g.cost;
+  const r = { id: newId('r'), emoji: g.emoji, name: g.name, cost: g.cost, at: Date.now(), given: false };
+  data.redemptions = [r, ...data.redemptions].slice(0, 50);
+  save();
+  return r;
+}
+
+export function markGiven(id) {
+  const r = data.redemptions.find(x => x.id === id);
+  if (r) r.given = true;
+  save();
+}
+
+// Undo an exchange (e.g. tapped by mistake): stars go back to the bank.
+export function refund(id) {
+  const r = data.redemptions.find(x => x.id === id);
+  if (!r) return;
+  data.stars += r.cost;
+  data.redemptions = data.redemptions.filter(x => x.id !== id);
+  save();
+}
+
+// ---------- Custom words ----------
 // Returns false if the word could not be saved (e.g. storage full of photos).
 export function addCustomWord(word) {
   data.customWords.push(word);
@@ -71,6 +164,7 @@ export function removeCustomWord(id) {
   save();
 }
 
+// ---------- Learning stats ----------
 function stat(id) {
   return (data.stats[id] ||= { seen: 0, right: 0, wrong: 0, last: 0 });
 }
@@ -92,12 +186,6 @@ export function record(id, ok) {
 
 export const rightCount = id => data.stats[id]?.right || 0;
 
-export function addStars(n) {
-  data.stars += n;
-  save();
-  return data.stars;
-}
-
 // Give a new sticker the child doesn't have yet (or a repeat once all are collected).
 export function addSticker(all) {
   const left = all.filter(s => !data.stickers.includes(s));
@@ -108,9 +196,10 @@ export function addSticker(all) {
   return { sticker: pick, isNew: left.length > 0 };
 }
 
-// Clears stars, stickers and learning stats; keeps settings and the parent's words.
+// Clears stars, stickers, exchanges and learning stats.
+// Keeps settings, the parent's own words and the gift list.
 export function resetProgress() {
-  data = { ...defaults(), settings: data.settings, customWords: data.customWords };
+  data = { ...defaults(), settings: data.settings, customWords: data.customWords, gifts: data.gifts };
   save();
 }
 

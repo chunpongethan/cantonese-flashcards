@@ -58,6 +58,7 @@ export function start(ctx) {
           ctx.wiggle(b);
           b.classList.add('dim');
           ctx.sfx.boop();
+          ctx.lose();
           await ctx.speak(`呢個係${c.say}。再試吓，${question}`);
         }
       });

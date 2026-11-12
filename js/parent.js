@@ -83,6 +83,20 @@ export function parentCorner({ show, leave, applySettings }) {
     return b;
   }));
 
+  // ----- Star rules -----
+  const capSel = h('select', { class: 'p-select' }, [0, 5, 10, 15, 20, 30, 50, 100].map(n =>
+    h('option', { value: n, selected: s.dailyCap === n }, n === 0 ? '不限' : `${n} 粒`)));
+  if (![0, 5, 10, 15, 20, 30, 50, 100].includes(s.dailyCap)) {
+    capSel.append(h('option', { value: s.dailyCap, selected: true }, `${s.dailyCap} 粒`));
+  }
+  const starInfo = h('p', { class: 'p-muted' });
+  const renderStarInfo = () => {
+    const cap = store.settings().dailyCap;
+    starInfo.textContent = `今日已攞 ${store.earnedToday()}${cap ? ` / ${cap}` : ''} 粒 · 銀行有 ⭐ ${store.stars()}`;
+  };
+  renderStarInfo();
+  capSel.addEventListener('change', () => { store.setSetting('dailyCap', Number(capSel.value)); renderStarInfo(); });
+
   // ----- Categories -----
   const catBox = h('div', { class: 'p-cats' });
   const renderCats = () => {
@@ -109,11 +123,15 @@ export function parentCorner({ show, leave, applySettings }) {
   };
   renderProgress();
   const reset = h('button', { class: 'p-danger', onclick: () => {
-    if (confirm('確定要清除所有星星、貼紙同學習紀錄？（設定同自己加嘅字會保留）')) {
+    if (confirm('確定要清除所有星星、貼紙、換禮物紀錄同學習紀錄？（設定、禮物同自己加嘅字會保留）')) {
       store.resetProgress();
       renderProgress();
+      renderStarInfo();
+      giftsUI.refresh();
     }
   } }, '清除進度');
+
+  const giftsUI = giftEditor(() => { renderStarInfo(); renderProgress(); });
 
   show(h('div', { class: 'screen parent' },
     h('div', { class: 'topbar' },
@@ -129,11 +147,100 @@ export function parentCorner({ show, leave, applySettings }) {
         toggle('顯示粵拼 (Jyutping)', 'jyutping'),
         toggle('音效', 'sound', applySettings),
         h('div', { class: 'p-row' }, '每回合卡數', sizes)),
+      section('⭐ 星星規則',
+        h('label', { class: 'p-row' }, '每日最多攞幾多粒星', capSel),
+        toggle('「聽聽揀揀」答錯扣一粒星', 'wrongPenalty'),
+        starInfo),
+      section('🎁 禮物', giftsUI.el),
       section('✏️ 自己加字', customWords(renderCats)),
       section('📚 字卡類別', catBox),
       section('📊 進度', progressLine, reset),
       h('p', { class: 'p-foot' }, '小貼士：每日玩 5–10 分鐘就夠。錯咗會自動多啲出現。'),
     )));
+}
+
+// Gift list the child can exchange stars for, plus the exchange record.
+function giftEditor(onChange) {
+  const emojiIn = h('input', { class: 'p-input p-emoji', placeholder: '🎁', autocomplete: 'off' });
+  const nameIn = h('input', { class: 'p-input', placeholder: '例如：去公園玩', maxlength: '20', autocomplete: 'off', lang: 'zh-HK' });
+  const costIn = h('input', { class: 'p-input p-cost', type: 'number', inputmode: 'numeric', min: '1', max: '9999', placeholder: '⭐' });
+  const msg = h('div', { class: 'p-msg' });
+  const list = h('div', { class: 'p-list' });
+  const history = h('div', { class: 'p-list' });
+
+  const setMsg = (text, bad = false) => { msg.textContent = text; msg.classList.toggle('bad', bad); };
+  const parseCost = v => {
+    const n = Math.round(Number(v));
+    return Number.isFinite(n) && n >= 1 && n <= 9999 ? n : null;
+  };
+
+  const addBtn = h('button', { class: 'p-btn p-primary', type: 'button', onclick: () => {
+    const name = nameIn.value.trim();
+    const cost = parseCost(costIn.value);
+    if (!name) return setMsg('請輸入禮物名稱', true);
+    if (!cost) return setMsg('星星數量要係 1 至 9999', true);
+    store.addGift({ emoji: firstGrapheme(emojiIn.value) || '🎁', name, cost });
+    emojiIn.value = nameIn.value = costIn.value = '';
+    setMsg(`已加入「${name}」✔`);
+    renderList();
+  } }, '＋ 加禮物');
+
+  function renderList() {
+    const gifts = [...store.gifts()].sort((a, b) => a.cost - b.cost);
+    list.replaceChildren(
+      gifts.length ? h('div', { class: 'p-list-title' }, '禮物（可以直接改星星數量）') : h('p', { class: 'p-muted' }, '仲未有禮物。'),
+      ...gifts.map(g => {
+        const cost = h('input', { class: 'p-input p-cost', type: 'number', inputmode: 'numeric', min: '1', max: '9999', value: g.cost, 'aria-label': '星星數量' });
+        cost.addEventListener('change', () => {
+          const n = parseCost(cost.value);
+          if (n) { store.updateGift(g.id, { cost: n }); setMsg(`「${g.name}」而家要 ⭐ ${n}`); } else cost.value = g.cost;
+        });
+        return h('div', { class: 'p-item' },
+          h('div', { class: 'p-gift-emoji' }, g.emoji),
+          h('div', { class: 'p-item-text' }, h('div', { class: 'p-gift-name' }, g.name)),
+          h('span', { class: 'p-muted' }, '⭐'), cost,
+          h('button', { class: 'p-icon', 'aria-label': '刪除', onclick: () => {
+            if (!confirm(`刪除禮物「${g.name}」？`)) return;
+            store.removeGift(g.id);
+            renderList();
+          } }, '🗑️'));
+      }));
+  }
+
+  function renderHistory() {
+    const items = store.redemptions();
+    const fmt = t => new Date(t).toLocaleString('zh-HK', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    const pending = items.filter(r => !r.given).length;
+    history.replaceChildren(
+      h('div', { class: 'p-list-title' }, items.length ? `換領紀錄（${pending} 個未俾）` : '換領紀錄：未有'),
+      ...items.map(r => h('div', { class: `p-item ${r.given ? 'given' : ''}` },
+        h('div', { class: 'p-gift-emoji' }, r.emoji),
+        h('div', { class: 'p-item-text' },
+          h('div', { class: 'p-gift-name' }, r.name),
+          h('div', { class: 'p-muted' }, `${fmt(r.at)} · ⭐ ${r.cost}`)),
+        r.given
+          ? h('span', { class: 'p-done' }, '已俾 ✔')
+          : [
+            h('button', { class: 'p-btn p-small', onclick: () => { store.markGiven(r.id); renderHistory(); } }, '已俾'),
+            h('button', { class: 'p-btn p-small', onclick: () => {
+              if (!confirm(`退還 ⭐ ${r.cost} 返入銀行，取消「${r.name}」？`)) return;
+              store.refund(r.id);
+              renderHistory();
+              onChange();
+            } }, '退還'),
+          ])));
+  }
+
+  renderList();
+  renderHistory();
+
+  const el = h('div', { class: 'p-form' },
+    h('div', { class: 'p-gift-row' }, emojiIn, nameIn, costIn),
+    addBtn,
+    msg,
+    list,
+    history);
+  return { el, refresh: () => { renderList(); renderHistory(); } };
 }
 
 // Form to add a word, plus the list of words already added.
