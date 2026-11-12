@@ -1,6 +1,6 @@
 // Offline support: app files are cached up front; fonts, Hanzi Writer and
 // stroke data are cached the first time they load.
-const VERSION = 'v11';
+const VERSION = 'v12';
 const APP_CACHE = `app-${VERSION}`;
 const RUNTIME_CACHE = `runtime-${VERSION}`;
 
@@ -27,6 +27,9 @@ const APP_FILES = [
   'js/modes/trace.js',
   'js/modes/maths.js',
   'js/modes/spell.js',
+  'js/modes/radical.js',
+  'js/modes/fill.js',
+  'js/lessons.js',
   'icons/icon-192.png',
   'icons/icon-512.png',
 ];

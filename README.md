@@ -9,6 +9,10 @@ The home screen has three subjects: **📖 中文**, **🔤 English** and **🔢
 - **聽聽揀揀 Listen & Pick**: hear 「邊個係…字？」 and tap the right character.
 - **配對遊戲 Matching Pairs**: match each picture card with its character card.
 - **寫寫字 Tracing**: watch the stroke order, then trace the character with a finger. This mode needs internet the first time.
+- **🏫 學校字 (school words)**: a card category with the characters from the school writing book, usable in all the 中文 games, including Tracing.
+- **🧱 部首 (radicals)**: "which radical does 「晴」 have?" or "which character has the 「日」 radical?". After the right answer, the radical strokes light up in orange.
+- **📝 填字 (fill-in)**: pick the right character for the blank in a short sentence, using each lesson's character pair plus one extra.
+- To add a new lesson from the school book, add an entry to `LESSONS` in `js/lessons.js` (radical, two characters, a sentence for each), and add the characters to the `school` list in `js/words.js`.
 - **🔤 English**: Flip Cards, Listen & Pick ("Which one is cat?"), Match and **🔡 Spelling**, using the same pictures and categories with English words and an English voice (British accent preferred). Flip cards show the Chinese word as a small hint.
 - **🔡 Spelling**: see the picture, hear "Spell cat.", then tap the letter tiles in order. 💡 shows the next letter, and after 2 wrong taps the right tile glows by itself. Each word earns +1 ⭐ and loses at most 1 ⭐.
 - **🔢 數學 Maths**: adding and taking away. Tap the right answer from 3–4 choices. 1-digit questions show apples to count; 2–3 digit questions are laid out in columns (豎式).

@@ -14,12 +14,18 @@ import * as matchMode from './modes/match.js';
 import * as traceMode from './modes/trace.js';
 import * as mathsMode from './modes/maths.js';
 import * as spellMode from './modes/spell.js';
+import * as radicalMode from './modes/radical.js';
+import * as fillMode from './modes/fill.js';
+import { RADICAL_CHARS, FILL_ITEMS } from './lessons.js';
 
 const MODES = {
   flip:  { name: '翻翻卡',   icon: '🃏', color: '#FF8A65', mod: flipMode },
   pick:  { name: '聽聽揀揀', icon: '👂', color: '#4FC3F7', mod: pickMode },
   match: { name: '配對遊戲', icon: '🧩', color: '#AED581', mod: matchMode },
   trace: { name: '寫寫字',   icon: '✍️', color: '#BA68C8', mod: traceMode },
+  // School book games: no category picker, they use the lessons in lessons.js.
+  radical: { name: '部首',   icon: '🧱', color: '#FFB300', mod: radicalMode, items: RADICAL_CHARS },
+  fill:    { name: '填字',   icon: '📝', color: '#26A69A', mod: fillMode, items: FILL_ITEMS },
 };
 
 // English section: the same games with English words and an English voice.
@@ -152,7 +158,17 @@ function gameList(title, modes, onPick) {
 }
 
 function chooseChinese() {
-  gameList('📖 中文', MODES, (key, m) => { say(m.name); chooseCategory(key, 'zh'); });
+  gameList('📖 中文', MODES, (key, m) => {
+    say(m.name);
+    if (m.items) startLessonGame(key); else chooseCategory(key, 'zh');
+  });
+}
+
+// 部首 / 填字: a round picked from the school lessons (missed ones come up more).
+function startLessonGame(key) {
+  const m = MODES[key];
+  const round = store.pickRound(m.items, Math.min(store.settings().roundSize, m.items.length));
+  playScreen(key, m.mod, { words: round, pool: m.items, lang: 'zh' }, () => startLessonGame(key));
 }
 
 // Parent corner opens only after holding the button for 2 seconds.
@@ -257,7 +273,10 @@ function startGame(modeKey, catId, lang = 'zh') {
   let words = lang === 'en' ? englishWords() : allWords();
   if (modeKey === 'spell') words = spellWords(words);
   const cats = enabledCategories().map(c => c.id);
-  const pool = words.filter(w => (catId === 'all' ? cats.includes(w.cat) : w.cat === catId));
+  const seenChars = new Set();
+  const pool = words
+    .filter(w => (catId === 'all' ? cats.includes(w.cat) : w.cat === catId))
+    .filter(w => !seenChars.has(w.char) && seenChars.add(w.char));
   if (!pool.length) { home(); return; }
   let size = store.settings().roundSize;
   if (modeKey === 'trace') size = Math.min(size, 4);

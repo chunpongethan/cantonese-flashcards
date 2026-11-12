@@ -10,6 +10,7 @@
 //   cat       category id (see CATEGORIES)
 
 export const CATEGORIES = [
+  { id: 'school',  name: '學校字', en: 'School',  emoji: '🏫', color: '#7986CB' },
   { id: 'animals', name: '動物', en: 'Animals', emoji: '🐶', color: '#FFB74D' },
   { id: 'nature',  name: '自然', en: 'Nature',  emoji: '🌈', color: '#81C784' },
   { id: 'body',    name: '身體', en: 'Body',    emoji: '✋', color: '#F48FB1' },
@@ -33,6 +34,9 @@ export const ENGLISH = {
   米: 'rice', 蛋: 'egg', 奶: 'milk', 糖: 'sweets', 菜: 'vegetables', 蘋果: 'apple', 香蕉: 'banana', 西瓜: 'watermelon', 麵包: 'bread', 雪糕: 'ice cream',
   紅: 'red', 黃: 'yellow', 藍: 'blue', 綠: 'green', 白: 'white', 黑: 'black',
   爸爸: 'dad', 媽媽: 'mum', 哥哥: 'brother', 姐姐: 'sister', 妹妹: 'baby', 公公: 'grandpa', 婆婆: 'grandma',
+  吃: 'eat', 地: 'ground', 你: 'you', 位: 'seat', 給: 'give', 紙: 'paper', 師: 'teacher', 忙: 'busy',
+  找: 'find', 晴: 'sunny', 海: 'sea', 洋: 'ocean', 蝴蝶: 'butterfly', 早上: 'morning', 晚上: 'night',
+  流星: 'shooting star', 蜜蜂: 'bee', 蛇: 'snake', 青蛙: 'frog',
   車: 'car', 船: 'boat', 書: 'book', 門: 'door', 球: 'ball', 杯: 'cup', 傘: 'umbrella', 鞋: 'shoes', 衫: 'T-shirt', 飛機: 'aeroplane',
 };
 
@@ -130,6 +134,36 @@ export const WORDS = [
     ['鞋', 'haai4', '👟'],
     ['衫', 'saam1', '👕'],
     ['飛機', 'fei1 gei1', '✈️'],
+  ]),
+  // Words from the school writing book (部首 lessons and activity pages).
+  ...w('school', [
+    ['同', 'tung4', '👫'],
+    ['吃', 'hek3', '😋'],
+    ['地', 'dei6', '🌍'],
+    ['場', 'coeng4', '🏟️'],
+    ['你', 'nei5', '👉'],
+    ['位', 'wai2', '💺'],
+    ['給', 'kap1', '🎁'],
+    ['紙', 'zi2', '📄'],
+    ['妹', 'mui6', '👧'],
+    ['媽', 'maa1', '👩'],
+    ['師', 'si1', '🧑‍🏫'],
+    ['帶', 'daai3', '🎀'],
+    ['忙', 'mong4', '🏃'],
+    ['恩', 'jan1', '🙏'],
+    ['找', 'zaau2', '🔍'],
+    ['拿', 'naa4', '🤲'],
+    ['晴', 'cing4', '🌤️'],
+    ['海', 'hoi2', '🌊'],
+    ['洋', 'joeng4', '🐳'],
+    ['蝴蝶', 'wu4 dip2', '🦋'],
+    ['早上', 'zou2 soeng6', '🌅'],
+    ['晚上', 'maan5 soeng6', '🌃'],
+    ['晴天', 'cing4 tin1', '🌞'],
+    ['流星', 'lau4 sing1', '🌠'],
+    ['蜜蜂', 'mat6 fung1', '🐝'],
+    ['蛇', 'se4', '🐍'],
+    ['青蛙', 'cing1 waa1', '🐸'],
   ]),
 ];
 
