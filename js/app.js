@@ -1,4 +1,5 @@
-import { STICKERS, PRAISE, PRAISE_EN } from './words.js';
+import { PRAISE, PRAISE_EN } from './words.js';
+import { FAMILIES, TYPES, EVOLVE_AT, TOTAL_FORMS, family, formName, monsterSVG } from './monsters.js';
 import * as speech from './speech.js';
 import * as sfx from './sfx.js';
 import * as store from './store.js';
@@ -131,8 +132,8 @@ function home() {
         }, '⭐ 星星銀行'),
         h('button', {
           class: 'sticker-btn',
-          onclick: () => { sfx.tap(); say('我嘅貼紙'); stickerBook(); },
-        }, '📒 貼紙 ', h('span', { class: 'pill' }, `${store.stickers().length}/${STICKERS.length}`))),
+          onclick: () => { sfx.tap(); say('怪獸圖鑑'); stickerBook(); },
+        }, '📒 怪獸 ', h('span', { class: 'pill' }, `${store.formsOwned()}/${TOTAL_FORMS}`))),
     ),
   ));
 }
@@ -322,7 +323,8 @@ function playScreen(modeKey, mod, extra, replay) {
 async function reward({ gained, lost, replay, lang }) {
   const en = lang === 'en';
   const full = store.capReached();
-  const { sticker, isNew } = gained > 0 ? store.addSticker(STICKERS) : { sticker: null };
+  const got = gained > 0 ? store.addMonster() : null;
+  const fam = got && family(got.id);
   const starRow = h('div', { class: 'reward-stars' },
     Array.from({ length: Math.min(gained, 10) }, (_, i) =>
       h('span', { style: { animationDelay: `${i * 0.12}s` } }, '⭐')));
@@ -335,9 +337,7 @@ async function reward({ gained, lost, replay, lang }) {
         lost ? h('span', { class: 'reward-lost' }, `  −${lost}`) : null),
       full ? h('div', { class: 'reward-full' }, '今日嘅星星儲滿喇！聽日再嚟 🌙') : null,
       h('div', { class: 'reward-bank' }, `銀行：⭐ ${store.stars()}`),
-      sticker ? h('div', { class: 'reward-sticker' },
-        h('div', { class: 'sticker-big' }, sticker),
-        h('div', { class: 'sticker-note' }, isNew ? '新貼紙！' : '貼紙')) : null,
+      got ? monsterReward(fam, got) : null,
       h('div', { class: 'reward-actions' },
         h('button', { class: 'big-btn', 'aria-label': '再玩', onclick: () => { sfx.tap(); replay(); } }, '🔁'),
         h('button', { class: 'big-btn', 'aria-label': '返主頁', onclick: () => { sfx.tap(); home(); } }, '🏠')),
@@ -349,32 +349,73 @@ async function reward({ gained, lost, replay, lang }) {
     await speech.speak(gained > 0 ? `Great job! You got ${gained} ${gained === 1 ? 'star' : 'stars'}!` : 'Good playing!', { lang: 'en' });
     if (token !== gameToken) return;
     if (full) speech.speak("That's all the stars for today. See you tomorrow!", { lang: 'en' });
-    else if (sticker) speech.speak(isNew ? 'And a new sticker!' : 'Here is a sticker!', { lang: 'en' });
+    else if (got) speech.speak(got.isNew ? 'You found a new monster!' : got.evolved ? 'Wow! Your monster evolved!' : `Another one! ${got.count} of ${EVOLVE_AT}.`, { lang: 'en' });
     return;
   }
   await speech.speak(gained > 0 ? `好叻呀！你攞咗${gained}粒星星！` : '玩得好好呀！');
   if (token !== gameToken) return;
   if (full) speech.speak('今日嘅星星已經儲滿喇，聽日再嚟儲啦！');
-  else if (sticker) speech.speak(isNew ? '仲有一張新貼紙添！' : '再送你一張貼紙！');
+  else if (got) {
+    speech.speak(got.isNew ? `你搵到新怪獸：${fam.name}！`
+      : got.evolved ? `嘩！${fam.name}進化做${fam.evo}喇！`
+        : `${fam.name}多咗一隻，有${got.count}隻喇！集齊${EVOLVE_AT}隻就會進化！`);
+  }
+}
+
+// The monster card on the reward screen.
+function monsterReward(fam, got) {
+  const stage = got.evolved ? 2 : 1;
+  const art = h('div', { class: `monster-art ${got.evolved ? 'evolving' : ''}` });
+  art.innerHTML = monsterSVG(fam, stage);
+  const note = got.isNew ? '新怪獸！'
+    : got.evolved ? `進化喇！✨`
+      : `${got.count} / ${EVOLVE_AT}`;
+  return h('div', { class: 'reward-sticker monster-card' },
+    art,
+    h('div', { class: 'monster-name' }, `${TYPES[fam.type].icon} ${formName(fam, stage)}`),
+    h('div', { class: 'sticker-note' }, note),
+    !got.evolved && !got.isNew ? progressDots(got.count) : null);
+}
+
+function progressDots(count) {
+  return h('div', { class: 'evo-dots' },
+    Array.from({ length: EVOLVE_AT }, (_, i) => h('span', { class: i < count ? 'on' : '' })));
 }
 
 function openBank() {
   starBank({ show, header: right => backBar(home, h('div', { class: 'title' }, '星星銀行'), right), sfx });
 }
 
-// ---------- Sticker book ----------
+// ---------- Monster book (怪獸圖鑑) ----------
 function stickerBook() {
-  const owned = new Set(store.stickers());
-  const grid = h('div', { class: 'sticker-grid' }, STICKERS.map(s => {
-    const has = owned.has(s);
-    return h('button', {
-      class: `sticker ${has ? '' : 'locked'}`,
-      onclick: e => { if (has) { sfx.pop(); wiggle(e.currentTarget); } },
-    }, has ? s : '❔');
-  }));
+  const counts = store.monsters();
+  const cell = (fam, stage) => {
+    const have = (counts[fam.id] || 0) >= (stage === 2 ? EVOLVE_AT : 1);
+    const art = h('div', { class: `monster-art ${have ? '' : 'mystery'}` });
+    art.innerHTML = monsterSVG(fam, stage);
+    const btn = h('button', { class: `monster-cell ${have ? '' : 'locked'}`, 'aria-label': have ? formName(fam, stage) : '未搵到' },
+      art,
+      h('div', { class: 'monster-name' }, have ? formName(fam, stage) : '？？？'));
+    btn.addEventListener('click', () => {
+      if (!have) { sfx.boop(); say(stage === 2 ? `集齊${EVOLVE_AT}隻${fam.name}就會見到佢` : '仲未搵到'); return; }
+      sfx.pop();
+      wiggle(btn);
+      say(formName(fam, stage));
+    });
+    return btn;
+  };
+  const rows = FAMILIES.map(fam => {
+    const n = counts[fam.id] || 0;
+    return h('div', { class: 'monster-row' },
+      cell(fam, 1),
+      h('div', { class: 'evo-arrow' }, progressDots(Math.min(n, EVOLVE_AT)), '➜'),
+      cell(fam, 2));
+  });
   show(h('div', { class: 'screen' },
-    backBar(home, h('div', { class: 'title' }, `📒 ${owned.size}/${STICKERS.length}`)),
-    h('div', { class: 'body' }, grid)));
+    backBar(home, h('div', { class: 'title' }, `📒 ${store.formsOwned()}/${TOTAL_FORMS}`)),
+    h('div', { class: 'body' },
+      h('p', { class: 'monster-help' }, `每玩完一回合就有一隻怪獸。集齊 ${EVOLVE_AT} 隻一樣嘅就會進化！`),
+      h('div', { class: 'monster-book' }, rows))));
 }
 
 // ---------- Boot ----------

@@ -1,5 +1,5 @@
 // 家長設定 — Parent corner: voice, game options, categories, own words, progress.
-import { STICKERS } from './words.js';
+import { TOTAL_FORMS } from './monsters.js';
 import * as speech from './speech.js';
 import * as store from './store.js';
 import { h, pic } from './ui.js';
@@ -158,7 +158,7 @@ export function parentCorner({ show, leave, applySettings }) {
   // ----- Progress -----
   const progressLine = h('p', {});
   const renderProgress = () => {
-    progressLine.textContent = `⭐ ${store.stars()}　📒 ${store.stickers().length}/${STICKERS.length}`;
+    progressLine.textContent = `⭐ ${store.stars()}　📒 ${store.formsOwned()}/${TOTAL_FORMS}`;
   };
   renderProgress();
   const reset = h('button', { class: 'p-danger', onclick: () => {

@@ -13,7 +13,7 @@ The home screen has three subjects: **📖 中文**, **🔤 English** and **🔢
 - **🔡 Spelling**: see the picture, hear "Spell cat.", then tap the letter tiles in order. 💡 shows the next letter, and after 2 wrong taps the right tile glows by itself. Each word earns +1 ⭐ and loses at most 1 ⭐.
 - **🔢 數學 Maths**: adding and taking away. Tap the right answer from 3–4 choices. 1-digit questions show apples to count; 2–3 digit questions are laid out in columns (豎式).
 
-Every round ends with stars and a new sticker for the sticker book (📒).
+Every round ends with stars and a **monster sticker** for the 📒 怪獸圖鑑 (monster book): 20 original monster families, each with a baby and an evolved form (40 to collect). New monsters come first; collecting 3 of the same baby evolves it.
 
 ## Stars and gifts
 - Each right answer (or flipped card, matched pair, traced word) earns 1 ⭐, up to a **daily limit** (20 by default). Stars lost for wrong answers don't free up room under the limit.

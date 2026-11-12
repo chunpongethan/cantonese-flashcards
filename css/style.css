@@ -674,6 +674,35 @@ button:active { transform: scale(.96); }
   50% { background: #FFF59D; box-shadow: 0 0 0 6px #FFCA28, 0 5px 0 #D7CCC8; transform: scale(1.1); }
 }
 
+/* ---------- Monster stickers ---------- */
+.monster-art { width: 140px; height: 148px; }
+.monster-art svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.monster-art.mystery svg { filter: brightness(0) opacity(.14); }
+.monster-art.evolving { animation: evolve 1.4s ease-out; }
+@keyframes evolve {
+  0% { transform: scale(.6); filter: brightness(3) saturate(0); }
+  40% { transform: scale(1.15); filter: brightness(2); }
+  100% { transform: scale(1); filter: none; }
+}
+.monster-card { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.monster-name { font-size: 22px; font-weight: 700; }
+.evo-dots { display: flex; gap: 6px; justify-content: center; }
+.evo-dots span { width: 12px; height: 12px; border-radius: 50%; background: rgba(0, 0, 0, .12); }
+.evo-dots span.on { background: var(--accent); }
+
+.monster-help { text-align: center; font-size: 17px; color: #8D6E63; margin: 0; }
+.monster-book { display: flex; flex-direction: column; gap: 10px; }
+.monster-row {
+  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 6px;
+  background: #fff; border-radius: 22px; box-shadow: var(--shadow); padding: 8px;
+}
+.monster-cell { background: none; padding: 0; display: flex; flex-direction: column; align-items: center; }
+.monster-cell .monster-art { width: 104px; height: 110px; }
+.monster-cell .monster-name { font-size: 18px; }
+.monster-cell.locked .monster-name { color: #BCAAA4; }
+.evo-arrow { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 22px; color: #BCAAA4; }
+.evo-arrow .evo-dots span { width: 9px; height: 9px; }
+
 /* ---------- Parent corner: cloud sync ---------- */
 .p-code-row { display: flex; align-items: center; gap: 10px; }
 .p-code {

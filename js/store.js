@@ -1,6 +1,7 @@
 // Progress, settings, the parent's own words, the star bank and gifts,
 // all saved on this device (localStorage).
 import { CATEGORIES } from './words.js';
+import { FAMILIES, EVOLVE_AT } from './monsters.js';
 
 const KEY = 'cantonese-flashcards-v1';
 
@@ -27,7 +28,8 @@ const defaults = () => ({
   },
   stars: 0,            // the star bank balance
   daily: { date: '', earned: 0 },
-  stickers: [],
+  stickers: [],        // old emoji stickers (replaced by monsters)
+  monsters: {},        // monster family id -> copies collected (evolves at EVOLVE_AT)
   stats: {},           // id -> { seen, right, wrong, last }
   customWords: [],     // words added in the parent corner
   gifts: DEFAULT_GIFTS.map(g => ({ ...g })),
@@ -53,6 +55,13 @@ function load() {
 }
 
 let data = load();
+
+// One-time move from the old emoji stickers: each old sticker becomes a monster.
+if (!data.monstersMigrated) {
+  for (let i = 0; i < (data.stickers || []).length; i++) awardMonster(true);
+  data.monstersMigrated = true;
+  try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) { /* ignore */ }
+}
 
 // Cloud sync listens for saves (see sync.js). Changes that came FROM the cloud
 // are saved quietly so they aren't sent straight back.
@@ -91,7 +100,7 @@ export function exportSections() {
     settings,
     gifts: data.gifts,
     words,
-    progress: { stars: data.stars, daily: data.daily, stickers: data.stickers, stats: data.stats },
+    progress: { stars: data.stars, daily: data.daily, stickers: data.stickers, monsters: data.monsters, stats: data.stats },
     redemptions: data.redemptions,
   });
 }
@@ -116,6 +125,7 @@ export function importSections(sec) {
     if (p.stars !== undefined) data.stars = p.stars;
     if (p.daily) data.daily = p.daily;
     if (p.stickers) data.stickers = p.stickers;
+    if (p.monsters) data.monsters = p.monsters;
     if (p.stats) data.stats = p.stats;
   }
   if (sec.redemptions) data.redemptions = sec.redemptions;
@@ -138,7 +148,7 @@ const newId = prefix => `${prefix}-${Date.now().toString(36)}${Math.random().toS
 
 export const settings = () => data.settings;
 export const stars = () => data.stars;
-export const stickers = () => data.stickers;
+export const monsters = () => data.monsters;
 export const customWords = () => data.customWords;
 
 export function setSetting(key, value) {
@@ -261,14 +271,27 @@ export function record(id, ok) {
 
 export const rightCount = id => data.stats[id]?.right || 0;
 
-// Give a new sticker the child doesn't have yet (or a repeat once all are collected).
-export function addSticker(all) {
-  const left = all.filter(s => !data.stickers.includes(s));
-  const pool = left.length ? left : all;
-  const pick = pool[Math.floor(Math.random() * pool.length)];
-  if (left.length) data.stickers.push(pick);
-  save();
-  return { sticker: pick, isNew: left.length > 0 };
+// ---------- Monster stickers ----------
+// Give a monster: a family not found yet if there is one, otherwise a baby that
+// hasn't evolved yet. Returns { id, count, isNew, evolved }.
+function awardMonster(quiet = false) {
+  data.monsters ||= {};
+  const count = id => data.monsters[id] || 0;
+  const unseen = FAMILIES.filter(f => !count(f.id));
+  const growing = FAMILIES.filter(f => count(f.id) > 0 && count(f.id) < EVOLVE_AT);
+  const pool = unseen.length ? unseen : growing.length ? growing : FAMILIES;
+  const f = pool[Math.floor(Math.random() * pool.length)];
+  const before = count(f.id);
+  data.monsters[f.id] = Math.min(before + 1, EVOLVE_AT);
+  if (!quiet) save();
+  return { id: f.id, count: data.monsters[f.id], isNew: before === 0, evolved: before === EVOLVE_AT - 1 };
+}
+export const addMonster = () => awardMonster();
+
+// Forms collected: babies found + babies evolved (out of FAMILIES.length * 2).
+export function formsOwned() {
+  const m = data.monsters || {};
+  return FAMILIES.reduce((n, f) => n + ((m[f.id] || 0) > 0) + ((m[f.id] || 0) >= EVOLVE_AT), 0);
 }
 
 // Clears stars, stickers, exchanges and learning stats.
