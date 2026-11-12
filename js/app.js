@@ -1,9 +1,9 @@
-import { STICKERS, PRAISE } from './words.js';
+import { STICKERS, PRAISE, PRAISE_EN } from './words.js';
 import * as speech from './speech.js';
 import * as sfx from './sfx.js';
 import * as store from './store.js';
 import { h, wiggle, confetti, pickOne } from './ui.js';
-import { allWords, enabledCategories } from './catalog.js';
+import { allWords, enabledCategories, englishWords, englishCategories } from './catalog.js';
 import { parentCorner } from './parent.js';
 import { starBank } from './bank.js';
 import * as flipMode from './modes/flip.js';
@@ -19,12 +19,19 @@ const MODES = {
   trace: { name: '寫寫字',   icon: '✍️', color: '#BA68C8', mod: traceMode },
 };
 
+// English section: the same games with English words and an English voice.
+const EN_MODES = {
+  flip:  { name: 'Flip Cards',    icon: '🃏', color: '#FF8A65' },
+  pick:  { name: 'Listen & Pick', icon: '👂', color: '#4FC3F7' },
+  match: { name: 'Match',         icon: '🧩', color: '#AED581' },
+};
+
 const app = document.getElementById('app');
 let gameToken = 0; // bumps on every screen change so running games stop
 
 function applySettings() {
   const s = store.settings();
-  speech.configure({ voiceURI: s.voiceURI, rate: s.rate });
+  speech.configure({ voiceURI: s.voiceURI, enVoiceURI: s.enVoiceURI, rate: s.rate });
   sfx.setEnabled(s.sound);
 }
 applySettings();
@@ -36,6 +43,7 @@ function show(screen) {
 }
 
 const say = text => speech.speak(text);
+const sayEn = text => speech.speak(text, { lang: 'en' });
 
 function starBadge() {
   return h('div', { class: 'star-badge', id: 'star-count' }, '⭐ ', h('b', {}, store.stars()));
@@ -72,11 +80,11 @@ function splash() {
     speech.unlock();
     sfx.chime();
     home();
-    say('我哋一齊嚟認字啦！');
+    say('今日挑戰，開始啦！');
   };
   show(h('div', { class: 'screen splash' },
-    h('div', { class: 'splash-title' }, '粵語識字卡'),
-    h('div', { class: 'splash-pics' }, '🐱 🍎 ☀️ 🚗'),
+    h('div', { class: 'splash-title' }, 'Daily Challenge'),
+    h('div', { class: 'splash-pics' }, '🐱 🔤 🔢 ⭐'),
     h('button', { class: 'play-btn', 'aria-label': '開始', onclick: go }, '▶'),
   ));
 }
@@ -96,13 +104,20 @@ function home() {
   show(h('div', { class: 'screen home' },
     h('div', { class: 'topbar' },
       parentButton(),
-      h('div', { class: 'title' }, '粵語識字卡'),
+      h('div', { class: 'title' }, 'Daily Challenge'),
       starBadge()),
     h('div', { class: 'body' },
       warn,
-      h('div', { class: 'mode-grid' }, tiles,
+      h('div', { class: 'section-label' }, '📖 中文'),
+      h('div', { class: 'mode-grid' }, tiles),
+      h('div', { class: 'subject-row' },
         h('button', {
-          class: 'mode-tile wide',
+          class: 'mode-tile subject',
+          style: { background: '#26A69A' },
+          onclick: () => { sfx.tap(); sayEn('English'); chooseEnglish(); },
+        }, h('div', { class: 'mode-icon' }, '🔤'), h('div', { class: 'mode-name' }, 'English')),
+        h('button', {
+          class: 'mode-tile subject',
           style: { background: '#FFB300' },
           onclick: () => { sfx.tap(); say('數學'); chooseMaths(); },
         }, h('div', { class: 'mode-icon' }, '🔢'), h('div', { class: 'mode-name' }, '數學 ＋ −'))),
@@ -146,19 +161,22 @@ function backBar(onBack, middle = null, right = null) {
 }
 
 // ---------- Category picker ----------
-function chooseCategory(modeKey) {
-  const m = MODES[modeKey];
-  const cats = enabledCategories();
+function chooseCategory(modeKey, lang = 'zh') {
+  const en = lang === 'en';
+  const m = en ? EN_MODES[modeKey] : MODES[modeKey];
+  const cats = en ? englishCategories() : enabledCategories();
+  const speakName = en ? sayEn : say;
+  const allName = en ? 'All' : '全部';
   const tiles = [
     h('button', {
       class: 'cat-tile all',
-      onclick: () => { sfx.tap(); say('全部'); startGame(modeKey, 'all'); },
-    }, h('div', { class: 'cat-icon' }, '🌟'), h('div', { class: 'cat-name' }, '全部')),
+      onclick: () => { sfx.tap(); speakName(allName); startGame(modeKey, 'all', lang); },
+    }, h('div', { class: 'cat-icon' }, '🌟'), h('div', { class: 'cat-name' }, allName)),
     ...cats.map(c => h('button', {
-      class: 'cat-tile',
+      class: `cat-tile ${en ? 'en' : ''}`,
       style: { background: c.color },
-      onclick: () => { sfx.tap(); say(c.name); startGame(modeKey, c.id); },
-    }, h('div', { class: 'cat-icon' }, c.emoji), h('div', { class: 'cat-name' }, c.name))),
+      onclick: () => { sfx.tap(); speakName(en ? c.en : c.name); startGame(modeKey, c.id, lang); },
+    }, h('div', { class: 'cat-icon' }, c.emoji), h('div', { class: 'cat-name' }, en ? c.en : c.name))),
   ];
   show(h('div', { class: 'screen' },
     backBar(home, h('div', { class: 'title' }, `${m.icon} ${m.name}`)),
@@ -202,17 +220,29 @@ function startMaths(op) {
   playScreen('maths', mathsMode, { op, words: [], pool: [] }, () => startMaths(op));
 }
 
+// ---------- English: pick a game ----------
+function chooseEnglish() {
+  const tiles = Object.entries(EN_MODES).map(([key, m]) => h('button', {
+    class: 'cat-tile math-op en',
+    style: { background: m.color },
+    onclick: () => { sfx.tap(); sayEn(m.name); chooseCategory(key, 'en'); },
+  }, h('div', { class: 'cat-icon' }, m.icon), h('div', { class: 'cat-name' }, m.name)));
+  show(h('div', { class: 'screen' },
+    backBar(home, h('div', { class: 'title' }, '🔤 English')),
+    h('div', { class: 'body' }, h('div', { class: 'math-op-grid' }, tiles))));
+}
+
 // ---------- Game ----------
-function startGame(modeKey, catId) {
+function startGame(modeKey, catId, lang = 'zh') {
   const m = MODES[modeKey];
-  const words = allWords();
+  const words = lang === 'en' ? englishWords() : allWords();
   const cats = enabledCategories().map(c => c.id);
   const pool = words.filter(w => (catId === 'all' ? cats.includes(w.cat) : w.cat === catId));
   if (!pool.length) { home(); return; }
   let size = store.settings().roundSize;
   if (modeKey === 'trace') size = Math.min(size, 4);
   const round = store.pickRound(pool, Math.min(size, pool.length));
-  playScreen(modeKey, m.mod, { words: round, pool: words }, () => startGame(modeKey, catId));
+  playScreen(modeKey, m.mod, { words: round, pool: words, lang }, () => startGame(modeKey, catId, lang));
 }
 
 // Shared game screen: top bar with progress, star rules, and the reward at the end.
@@ -234,9 +264,9 @@ function playScreen(modeKey, mod, extra, replay) {
     settings: store.settings(),
     sfx,
     alive: () => token === gameToken,
-    speak: text => (token === gameToken ? speech.speak(text) : Promise.resolve()),
-    say: w => (token === gameToken ? speech.speak(w.say || w.char) : Promise.resolve()),
-    praise: () => pickOne(PRAISE),
+    speak: text => (token === gameToken ? speech.speak(text, { lang: extra.lang }) : Promise.resolve()),
+    say: w => (token === gameToken ? speech.speak(w.say || w.char, { lang: w.lang }) : Promise.resolve()),
+    praise: () => pickOne(extra.lang === 'en' ? PRAISE_EN : PRAISE),
     confetti,
     wiggle,
     level: id => store.rightCount(id),
@@ -263,13 +293,14 @@ function playScreen(modeKey, mod, extra, replay) {
       progress.replaceChildren(...Array.from({ length: total }, (_, k) =>
         h('span', { class: k < i ? 'dot done' : k === i ? 'dot now' : 'dot' })));
     },
-    done: () => { if (token === gameToken) reward({ gained: roundStars, lost: roundLost, replay }); },
+    done: () => { if (token === gameToken) reward({ gained: roundStars, lost: roundLost, replay, lang: extra.lang }); },
   };
   mod.start(ctx);
 }
 
 // ---------- Reward ----------
-async function reward({ gained, lost, replay }) {
+async function reward({ gained, lost, replay, lang }) {
+  const en = lang === 'en';
   const full = store.capReached();
   const { sticker, isNew } = gained > 0 ? store.addSticker(STICKERS) : { sticker: null };
   const starRow = h('div', { class: 'reward-stars' },
@@ -277,7 +308,7 @@ async function reward({ gained, lost, replay }) {
       h('span', { style: { animationDelay: `${i * 0.12}s` } }, '⭐')));
   show(h('div', { class: 'screen reward' },
     h('div', { class: 'body' },
-      h('div', { class: 'reward-title' }, '好叻呀！'),
+      h('div', { class: 'reward-title' }, en ? 'Great job!' : '好叻呀！'),
       starRow,
       h('div', { class: 'reward-count' },
         `+${gained} ⭐`,
@@ -294,6 +325,13 @@ async function reward({ gained, lost, replay }) {
   const token = gameToken;
   sfx.fanfare();
   confetti(40);
+  if (en) {
+    await speech.speak(gained > 0 ? `Great job! You got ${gained} ${gained === 1 ? 'star' : 'stars'}!` : 'Good playing!', { lang: 'en' });
+    if (token !== gameToken) return;
+    if (full) speech.speak("That's all the stars for today. See you tomorrow!", { lang: 'en' });
+    else if (sticker) speech.speak(isNew ? 'And a new sticker!' : 'Here is a sticker!', { lang: 'en' });
+    return;
+  }
   await speech.speak(gained > 0 ? `好叻呀！你攞咗${gained}粒星星！` : '玩得好好呀！');
   if (token !== gameToken) return;
   if (full) speech.speak('今日嘅星星已經儲滿喇，聽日再嚟儲啦！');

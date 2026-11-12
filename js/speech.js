@@ -1,9 +1,12 @@
-// Cantonese text-to-speech using the browser's built-in voices.
+// Text-to-speech using the browser's built-in voices:
+// a Cantonese voice for Chinese, and an English voice (British first) for English.
 const synth = 'speechSynthesis' in window ? window.speechSynthesis : null;
 
 let voices = [];
-let chosen = null;
+let chosen = null;     // Cantonese
+let chosenEn = null;   // English
 let preferredURI = '';
+let preferredEnURI = '';
 let rate = 0.8;
 let current = null; // keep a reference so Chrome doesn't garbage-collect the utterance
 const listeners = new Set();
@@ -14,6 +17,8 @@ function isCantonese(v) {
     /cantonese|粵|廣東|hong kong/i.test(v.name);
 }
 
+const isEnglish = v => /^en([-_]|$)/i.test(v.lang || '');
+
 function quality(v) {
   let s = 0;
   if (/premium|enhanced|natural|neural|online/i.test(v.name)) s += 3;
@@ -22,17 +27,26 @@ function quality(v) {
   return s;
 }
 
+function englishScore(v) {
+  const lang = v.lang.toLowerCase().replace('_', '-');
+  return quality(v) + (lang === 'en-gb' ? 4 : lang === 'en-us' ? 2 : 0);
+}
+
 function refresh() {
   voices = synth ? synth.getVoices() : [];
-  const list = cantoneseVoices();
-  chosen = list.find(v => v.voiceURI === preferredURI) || list[0] || null;
+  const zh = cantoneseVoices();
+  chosen = zh.find(v => v.voiceURI === preferredURI) || zh[0] || null;
+  const en = englishVoices();
+  chosenEn = en.find(v => v.voiceURI === preferredEnURI) || en[0] || null;
   listeners.forEach(fn => fn());
 }
 
 export const supported = () => !!synth;
 export const cantoneseVoices = () => voices.filter(isCantonese).sort((a, b) => quality(b) - quality(a));
+export const englishVoices = () => voices.filter(isEnglish).sort((a, b) => englishScore(b) - englishScore(a));
 export const hasCantonese = () => !!chosen;
 export const currentVoice = () => chosen;
+export const currentEnglishVoice = () => chosenEn;
 export const onChange = fn => { listeners.add(fn); return () => listeners.delete(fn); };
 
 if (synth) {
@@ -42,8 +56,10 @@ if (synth) {
   [250, 1000, 2500, 5000].forEach(ms => setTimeout(refresh, ms));
 }
 
-export function configure({ voiceURI, rate: r } = {}) {
-  if (voiceURI !== undefined) { preferredURI = voiceURI; refresh(); }
+export function configure({ voiceURI, enVoiceURI, rate: r } = {}) {
+  if (voiceURI !== undefined) preferredURI = voiceURI;
+  if (enVoiceURI !== undefined) preferredEnURI = enVoiceURI;
+  if (voiceURI !== undefined || enVoiceURI !== undefined) refresh();
   if (r !== undefined) rate = r;
 }
 
@@ -60,13 +76,16 @@ export function cancel() {
 }
 
 // Speak text and resolve when finished (or after a safety timeout).
+// opts.lang: 'en' for English, anything else for Cantonese.
 export function speak(text, opts = {}) {
   if (!synth || !text) return Promise.resolve();
   synth.cancel();
   return new Promise(resolve => {
+    const english = opts.lang === 'en';
+    const voice = english ? chosenEn : chosen;
     const u = new SpeechSynthesisUtterance(text);
-    u.lang = chosen ? chosen.lang : 'zh-HK';
-    if (chosen) u.voice = chosen;
+    u.lang = voice ? voice.lang : english ? 'en-GB' : 'zh-HK';
+    if (voice) u.voice = voice;
     u.rate = opts.rate ?? rate;
     u.pitch = 1.1;
     let done = false;
@@ -77,7 +96,8 @@ export function speak(text, opts = {}) {
       if (current === u) current = null;
       resolve();
     };
-    const timer = setTimeout(finish, 1500 + (text.length * 550) / u.rate);
+    const perChar = english ? 120 : 550;
+    const timer = setTimeout(finish, 1500 + (text.length * perChar) / u.rate);
     u.onend = finish;
     u.onerror = finish;
     current = u;

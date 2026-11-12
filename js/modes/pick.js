@@ -1,11 +1,30 @@
 // 聽聽揀揀 — Listen & Pick: hear a word, tap the matching character.
 import { h, pic, hanzi, shuffle, sample, wait } from '../ui.js';
 
+// What the voice says, in Cantonese or English.
+const TEXT = {
+  zh: {
+    // Colour words read the bare character here ("紅" not "紅色") so it sounds like 「邊個係紅字？」.
+    ask: w => `邊個係${w.color ? w.char : w.say}字？`,
+    right: (praise, w) => `${praise}${w.say}！`,
+    wrong: (c, question) => `呢個係${c.say}。再試吓，${question}`,
+  },
+  en: {
+    ask: w => `Which one is ${w.say}?`,
+    right: (praise, w) => `${praise} ${w.say}!`,
+    wrong: (c, question) => `That is ${c.say}. Try again. ${question}`,
+  },
+};
+
 export function start(ctx) {
   let i = 0;
+  const english = ctx.lang === 'en';
+  const t = english ? TEXT.en : TEXT.zh;
 
   function distractors(w, n) {
-    const ok = x => x.id !== w.id && x.char !== w.char && [...x.char].length === [...w.char].length;
+    // Chinese: prefer words with the same number of characters. English: any word.
+    const ok = x => x.id !== w.id && x.char !== w.char &&
+      (english || [...x.char].length === [...w.char].length);
     const same = ctx.pool.filter(x => ok(x) && x.cat === w.cat);
     let out = sample(same, n);
     if (out.length < n) {
@@ -28,9 +47,7 @@ export function start(ctx) {
     let firstTry = true;
     let locked = false;
 
-    // Colour words read the bare character here ("紅" not "紅色") so it sounds like 「邊個係紅字？」.
-    const target = w.color ? w.char : w.say;
-    const question = `邊個係${target}字？`;
+    const question = t.ask(w);
     const ask = () => ctx.speak(question);
 
     const reveal = h('div', { class: 'reveal' }, h('div', { class: 'reveal-q' }, '❓'), pic(w));
@@ -48,7 +65,7 @@ export function start(ctx) {
           ctx.confetti();
           ctx.record(w, firstTry);
           ctx.star();
-          await ctx.speak(`${ctx.praise()}${w.say}！`);
+          await ctx.speak(t.right(ctx.praise(), w));
           await wait(400);
           if (!ctx.alive()) return;
           i++;
@@ -59,7 +76,7 @@ export function start(ctx) {
           b.classList.add('dim');
           ctx.sfx.boop();
           ctx.lose();
-          await ctx.speak(`呢個係${c.say}。再試吓，${question}`);
+          await ctx.speak(t.wrong(c, question));
         }
       });
       return b;

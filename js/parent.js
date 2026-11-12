@@ -42,24 +42,31 @@ export function parentCorner({ show, leave, applySettings }) {
   // ----- Voice -----
   const voiceInfo = h('div', { class: 'p-voice' });
   const renderVoice = () => {
-    const list = speech.cantoneseVoices();
-    const cur = speech.currentVoice();
     if (!speech.supported()) {
       voiceInfo.replaceChildren(h('p', { class: 'p-warn' }, '呢個瀏覽器唔支援語音。請用 Safari（iPhone）或 Chrome（Android）。'));
       return;
     }
-    if (!list.length) {
-      voiceInfo.replaceChildren(h('div', { class: 'p-warn' },
+    const list = speech.cantoneseVoices();
+    const cur = speech.currentVoice();
+    const zhPart = list.length
+      ? h('label', { class: 'p-row' }, '廣東話', h('select', {
+        onchange: e => { store.setSetting('voiceURI', e.target.value); applySettings(); speech.speak('你好！我哋一齊認字。'); },
+      }, list.map(v => h('option', { value: v.voiceURI, selected: cur && v.voiceURI === cur.voiceURI }, `${v.name} (${v.lang})`))))
+      : h('div', { class: 'p-warn' },
         h('p', {}, '搵唔到廣東話聲音。安裝方法：'),
         h('p', {}, 'iPhone / iPad：設定 › 輔助使用 › 朗讀內容 › 聲音 › 中文 › 中文（香港），下載一把聲音。'),
         h('p', {}, 'Android：設定 › 文字轉語音輸出 › Google 語音服務 › 安裝語音數據 › 粵語（香港）。'),
-        h('p', {}, '安裝後重新開啟呢個網頁。')));
-      return;
-    }
-    const select = h('select', {
-      onchange: e => { store.setSetting('voiceURI', e.target.value); applySettings(); speech.speak('你好！我哋一齊認字。'); },
-    }, list.map(v => h('option', { value: v.voiceURI, selected: cur && v.voiceURI === cur.voiceURI }, `${v.name} (${v.lang})`)));
-    voiceInfo.replaceChildren(h('label', { class: 'p-row' }, '聲音', select));
+        h('p', {}, '安裝後重新開啟呢個網頁。'));
+
+    const enList = speech.englishVoices();
+    const enCur = speech.currentEnglishVoice();
+    const enPart = enList.length
+      ? h('label', { class: 'p-row' }, 'English', h('select', {
+        onchange: e => { store.setSetting('enVoiceURI', e.target.value); applySettings(); speech.speak('Hello! Which one is cat?', { lang: 'en' }); },
+      }, enList.map(v => h('option', { value: v.voiceURI, selected: enCur && v.voiceURI === enCur.voiceURI }, `${v.name} (${v.lang})`))))
+      : h('p', { class: 'p-warn' }, '搵唔到英文聲音，English 部分會冇聲。');
+
+    voiceInfo.replaceChildren(zhPart, enPart);
   };
   renderVoice();
   const offVoices = speech.onChange(renderVoice);
@@ -163,14 +170,16 @@ export function parentCorner({ show, leave, applySettings }) {
       section('🔊 廣東話聲音',
         voiceInfo,
         h('label', { class: 'p-row' }, '語速', rate),
-        h('button', { class: 'p-btn', onclick: () => speech.speak('貓、狗、蘋果、飛機') }, '試聽')),
+        h('div', { class: 'p-actions' },
+          h('button', { class: 'p-btn', onclick: () => speech.speak('貓、狗、蘋果、飛機') }, '試聽廣東話'),
+          h('button', { class: 'p-btn', onclick: () => speech.speak('cat, dog, apple, aeroplane', { lang: 'en' }) }, '試聽 English'))),
       section('🎮 遊戲',
         toggle('顯示粵拼 (Jyutping)', 'jyutping'),
         toggle('音效', 'sound', applySettings),
         h('div', { class: 'p-row' }, '每回合卡數', sizes)),
       section('⭐ 星星規則',
         h('label', { class: 'p-row' }, '每日最多攞幾多粒星', capSel),
-        toggle('答錯扣一粒星（聽聽揀揀、數學）', 'wrongPenalty'),
+        toggle('答錯扣一粒星（聽聽揀揀、English、數學）', 'wrongPenalty'),
         starInfo),
       section('🔢 數學',
         h('div', { class: 'p-row' }, '最多幾位數', digitSeg),
@@ -281,6 +290,7 @@ function customWords(onChange) {
   const catSel = h('select', { class: 'p-input' },
     categoryOptions().map(c => h('option', { value: c.id }, `${c.emoji} ${c.name}`)));
   const sayIn = h('input', { class: 'p-input', placeholder: '讀法（可留空；讀錯音先填）', autocomplete: 'off', lang: 'zh-HK' });
+  const enIn = h('input', { class: 'p-input', placeholder: '例如 school（可留空；填咗會出現喺 English）', autocomplete: 'off', autocapitalize: 'off', maxlength: '30', lang: 'en' });
   const msg = h('div', { class: 'p-msg' });
   const list = h('div', { class: 'p-list' });
 
@@ -327,6 +337,7 @@ function customWords(onChange) {
       cat: catSel.value,
       char,
       jyutping: jpIn.value.trim(),
+      en: enIn.value.trim().replace(/\s+/g, ' '),
       emoji: photo ? '' : emoji,
       say: sayIn.value.trim() || char,
       custom: true,
@@ -334,7 +345,7 @@ function customWords(onChange) {
     if (photo) word.img = photo;
     if (!store.addCustomWord(word)) return setMsg('儲存唔到：空間可能已滿，試吓刪走一啲有相嘅字', true);
 
-    charIn.value = jpIn.value = emojiIn.value = sayIn.value = '';
+    charIn.value = jpIn.value = emojiIn.value = sayIn.value = enIn.value = '';
     photo = null;
     updatePreview();
     setMsg(`已加入「${char}」✔`);
@@ -352,7 +363,7 @@ function customWords(onChange) {
         pic(w, 'tiny'),
         h('div', { class: 'p-item-text' },
           h('div', { class: 'p-item-char' }, w.char),
-          h('div', { class: 'p-muted' }, [w.jyutping, names[w.cat]].filter(Boolean).join(' · '))),
+          h('div', { class: 'p-muted' }, [w.jyutping, w.en, names[w.cat]].filter(Boolean).join(' · '))),
         h('button', { class: 'p-icon', 'aria-label': '試聽', onclick: () => speech.speak(w.say || w.char) }, '🔊'),
         h('button', { class: 'p-icon', 'aria-label': '刪除', onclick: () => {
           if (!confirm(`刪除「${w.char}」？`)) return;
@@ -373,6 +384,7 @@ function customWords(onChange) {
         h('label', { class: 'p-btn p-photo-btn' }, '📷 相片', fileIn))),
     h('label', { class: 'p-field' }, h('span', {}, '類別'), catSel),
     h('label', { class: 'p-field' }, h('span', {}, '讀法'), sayIn),
+    h('label', { class: 'p-field' }, h('span', {}, 'English'), enIn),
     h('div', { class: 'p-actions' }, testBtn, addBtn),
     msg,
     list);

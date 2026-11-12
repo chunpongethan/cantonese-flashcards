@@ -19,7 +19,7 @@ export function start(ctx) {
 
     const card = h('button', { class: 'flipcard', 'aria-label': '翻卡' },
       h('div', { class: 'face front' }, pic(w), h('div', { class: 'tap-hint' }, '👆')),
-      h('div', { class: 'face back' }, hanzi(w, ctx.settings.jyutping), pic(w, 'small')));
+      h('div', { class: 'face back' }, hanzi(w, ctx.settings.jyutping || w.lang === 'en'), pic(w, 'small')));
 
     const nextBtn = h('button', { class: 'big-btn next hidden', 'aria-label': '下一張', onclick: next }, '➡️');
     const sayBtn = h('button', { class: 'big-btn', 'aria-label': '再聽', onclick: () => { ctx.sfx.tap(); ctx.say(w); } }, '🔊');

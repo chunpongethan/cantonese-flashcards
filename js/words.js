@@ -10,18 +10,33 @@
 //   cat       category id (see CATEGORIES)
 
 export const CATEGORIES = [
-  { id: 'animals', name: '動物', emoji: '🐶', color: '#FFB74D' },
-  { id: 'nature',  name: '自然', emoji: '🌈', color: '#81C784' },
-  { id: 'body',    name: '身體', emoji: '✋', color: '#F48FB1' },
-  { id: 'numbers', name: '數字', emoji: '🔢', color: '#64B5F6' },
-  { id: 'food',    name: '食物', emoji: '🍎', color: '#FF8A65' },
-  { id: 'colors',  name: '顏色', emoji: '🎨', color: '#BA68C8' },
-  { id: 'family',  name: '家人', emoji: '👨‍👩‍👧', color: '#4DB6AC' },
-  { id: 'things',  name: '物件', emoji: '🚗', color: '#90A4AE' },
+  { id: 'animals', name: '動物', en: 'Animals', emoji: '🐶', color: '#FFB74D' },
+  { id: 'nature',  name: '自然', en: 'Nature',  emoji: '🌈', color: '#81C784' },
+  { id: 'body',    name: '身體', en: 'Body',    emoji: '✋', color: '#F48FB1' },
+  { id: 'numbers', name: '數字', en: 'Numbers', emoji: '🔢', color: '#64B5F6' },
+  { id: 'food',    name: '食物', en: 'Food',    emoji: '🍎', color: '#FF8A65' },
+  { id: 'colors',  name: '顏色', en: 'Colours', emoji: '🎨', color: '#BA68C8' },
+  { id: 'family',  name: '家人', en: 'Family',  emoji: '👨‍👩‍👧', color: '#4DB6AC' },
+  { id: 'things',  name: '物件', en: 'Things',  emoji: '🚗', color: '#90A4AE' },
 ];
 
 // Category for words a parent adds in the parent corner.
-export const MY_CATEGORY = { id: 'mine', name: '我的字', emoji: '💖', color: '#F06292' };
+export const MY_CATEGORY = { id: 'mine', name: '我的字', en: 'My words', emoji: '💖', color: '#F06292' };
+
+// English for the built-in words (same pictures). Words left out here
+// (e.g. 弟弟, which would clash with 哥哥 as "brother") don't appear in English.
+export const ENGLISH = {
+  貓: 'cat', 狗: 'dog', 魚: 'fish', 鳥: 'bird', 牛: 'cow', 馬: 'horse', 羊: 'sheep', 豬: 'pig', 雞: 'chicken', 兔: 'rabbit',
+  日: 'sun', 月: 'moon', 山: 'mountain', 水: 'water', 火: 'fire', 雨: 'rain', 花: 'flower', 樹: 'tree', 雲: 'cloud', 星: 'star',
+  口: 'mouth', 手: 'hand', 目: 'eye', 耳: 'ear', 鼻: 'nose', 頭: 'head', 牙: 'tooth', 腳: 'foot',
+  一: 'one', 二: 'two', 三: 'three', 四: 'four', 五: 'five', 六: 'six', 七: 'seven', 八: 'eight', 九: 'nine', 十: 'ten',
+  米: 'rice', 蛋: 'egg', 奶: 'milk', 糖: 'sweets', 菜: 'vegetables', 蘋果: 'apple', 香蕉: 'banana', 西瓜: 'watermelon', 麵包: 'bread', 雪糕: 'ice cream',
+  紅: 'red', 黃: 'yellow', 藍: 'blue', 綠: 'green', 白: 'white', 黑: 'black',
+  爸爸: 'dad', 媽媽: 'mum', 哥哥: 'brother', 姐姐: 'sister', 妹妹: 'baby', 公公: 'grandpa', 婆婆: 'grandma',
+  車: 'car', 船: 'boat', 書: 'book', 門: 'door', 球: 'ball', 杯: 'cup', 傘: 'umbrella', 鞋: 'shoes', 衫: 'T-shirt', 飛機: 'aeroplane',
+};
+
+export const PRAISE_EN = ['Great job!', 'Well done!', 'Super!', 'Good job!', 'Yes, you got it!'];
 
 const w = (cat, list) => list.map(([char, jyutping, emoji, extra = {}]) => ({
   id: `${cat}-${char}`, cat, char, jyutping, emoji, say: char, ...extra,

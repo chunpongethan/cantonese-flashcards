@@ -1,7 +1,7 @@
 {
-  "name": "粵語識字卡",
-  "short_name": "識字卡",
-  "description": "廣東話中文字卡遊戲",
+  "name": "Daily Challenge",
+  "short_name": "Daily Challenge",
+  "description": "中文、English、數學每日挑戰",
   "lang": "zh-HK",
   "start_url": "./",
   "scope": "./",

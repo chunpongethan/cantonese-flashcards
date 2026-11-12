@@ -571,6 +571,29 @@ button:active { transform: scale(.96); }
 .speaker-btn.small { width: 72px; height: 72px; font-size: 36px; }
 .num-choice { font: 700 52px system-ui, sans-serif; font-variant-numeric: tabular-nums; aspect-ratio: 1 / .7; }
 
+/* ---------- English ---------- */
+.section-label { font-size: 18px; font-weight: 700; color: #8D6E63; margin-bottom: -6px; }
+.subject-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.mode-tile.subject { aspect-ratio: auto; padding: 14px 8px; }
+.mode-tile.subject .mode-icon { font-size: 44px; }
+.mode-tile.subject .mode-name { font-family: 'Nunito', system-ui, sans-serif; }
+.cat-tile.en .cat-name { font: 700 19px system-ui, sans-serif; }
+
+.latin {
+  font: 800 72px 'Nunito', 'Comic Sans MS', system-ui, sans-serif;
+  line-height: 1.1; text-align: center; overflow-wrap: anywhere;
+}
+.latin.mid { font-size: 58px; }
+.latin.long { font-size: 42px; }
+.zh-hint { font-family: var(--font); font-size: 26px; color: #8D6E63; margin-top: 4px; }
+.choice .latin { font-size: 40px; }
+.choice .latin.mid { font-size: 30px; }
+.choice .latin.long { font-size: 22px; }
+.mfront .latin { font-size: 30px; padding: 0 6px; }
+.mfront .latin.mid { font-size: 24px; }
+.mfront .latin.long { font-size: 18px; }
+.mfront .zh-hint { font-size: 16px; }
+
 /* ---------- Confetti ---------- */
 #fx { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 10; }
 .confetti {

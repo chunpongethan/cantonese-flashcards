@@ -45,6 +45,14 @@ export function pic(word, extraClass = '') {
 
 // The character side of a word, with optional Jyutping underneath.
 export function hanzi(word, showJyutping = false) {
+  if (word.lang === 'en') {
+    // English word, sized by length; the hint underneath is the Chinese word.
+    const n = word.char.length;
+    const size = n <= 4 ? 'short' : n <= 7 ? 'mid' : 'long';
+    return h('div', { class: 'hanzi-wrap' },
+      h('div', { class: `latin ${size}` }, word.char),
+      showJyutping && word.zh ? h('div', { class: 'zh-hint' }, word.zh) : null);
+  }
   const len = [...word.char].length;
   return h('div', { class: 'hanzi-wrap' },
     h('div', { class: `hanzi len${len}` }, word.char),
