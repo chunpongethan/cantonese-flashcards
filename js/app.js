@@ -11,6 +11,7 @@ import * as pickMode from './modes/pick.js';
 import * as matchMode from './modes/match.js';
 import * as traceMode from './modes/trace.js';
 import * as mathsMode from './modes/maths.js';
+import * as spellMode from './modes/spell.js';
 
 const MODES = {
   flip:  { name: '翻翻卡',   icon: '🃏', color: '#FF8A65', mod: flipMode },
@@ -21,10 +22,14 @@ const MODES = {
 
 // English section: the same games with English words and an English voice.
 const EN_MODES = {
-  flip:  { name: 'Flip Cards',    icon: '🃏', color: '#FF8A65' },
-  pick:  { name: 'Listen & Pick', icon: '👂', color: '#4FC3F7' },
-  match: { name: 'Match',         icon: '🧩', color: '#AED581' },
+  flip:  { name: 'Flip Cards',    icon: '🃏', color: '#FF8A65', mod: flipMode },
+  pick:  { name: 'Listen & Pick', icon: '👂', color: '#4FC3F7', mod: pickMode },
+  match: { name: 'Match',         icon: '🧩', color: '#AED581', mod: matchMode },
+  spell: { name: 'Spelling',      icon: '🔡', color: '#BA68C8', mod: spellMode },
 };
+
+// English words that fit the spelling game, given the parent's length setting.
+const spellWords = words => words.filter(w => spellMode.spellable(w, store.settings().spellMax));
 
 const app = document.getElementById('app');
 let gameToken = 0; // bumps on every screen change so running games stop
@@ -89,17 +94,26 @@ function splash() {
   ));
 }
 
-// ---------- Home ----------
-function home() {
-  const tiles = Object.entries(MODES).map(([key, m]) =>
-    h('button', {
-      class: 'mode-tile',
-      style: { background: m.color },
-      onclick: () => { sfx.tap(); say(m.name); chooseCategory(key); },
-    }, h('div', { class: 'mode-icon' }, m.icon), h('div', { class: 'mode-name' }, m.name)));
+// ---------- Home: choose a subject ----------
+const SUBJECTS = [
+  { key: 'zh', name: '中文', sub: '認字・寫字', icon: '📖', color: '#FF8A65', speak: () => say('中文'), open: () => chooseChinese() },
+  { key: 'en', name: 'English', sub: 'Words・Spelling', icon: '🔤', color: '#26A69A', speak: () => sayEn('English'), open: () => chooseEnglish() },
+  { key: 'math', name: '數學', sub: '加數・減數', icon: '🔢', color: '#FFB300', speak: () => say('數學'), open: () => chooseMaths() },
+];
 
+function home() {
   const warn = speech.hasCantonese() ? null :
     h('div', { class: 'voice-warn' }, '🔇 呢部機未有廣東話聲音 — 請家長去「家長設定」睇睇');
+
+  const subjects = SUBJECTS.map(sj => h('button', {
+    class: `subject-tile s-${sj.key}`,
+    style: { background: sj.color },
+    onclick: () => { sfx.tap(); sj.speak(); sj.open(); },
+  },
+  h('div', { class: 'subject-icon' }, sj.icon),
+  h('div', { class: 'subject-text' },
+    h('div', { class: 'subject-name' }, sj.name),
+    h('div', { class: 'subject-sub' }, sj.sub))));
 
   show(h('div', { class: 'screen home' },
     h('div', { class: 'topbar' },
@@ -108,19 +122,7 @@ function home() {
       starBadge()),
     h('div', { class: 'body' },
       warn,
-      h('div', { class: 'section-label' }, '📖 中文'),
-      h('div', { class: 'mode-grid' }, tiles),
-      h('div', { class: 'subject-row' },
-        h('button', {
-          class: 'mode-tile subject',
-          style: { background: '#26A69A' },
-          onclick: () => { sfx.tap(); sayEn('English'); chooseEnglish(); },
-        }, h('div', { class: 'mode-icon' }, '🔤'), h('div', { class: 'mode-name' }, 'English')),
-        h('button', {
-          class: 'mode-tile subject',
-          style: { background: '#FFB300' },
-          onclick: () => { sfx.tap(); say('數學'); chooseMaths(); },
-        }, h('div', { class: 'mode-icon' }, '🔢'), h('div', { class: 'mode-name' }, '數學 ＋ −'))),
+      h('div', { class: 'subject-list' }, subjects),
       h('div', { class: 'home-row' },
         h('button', {
           class: 'sticker-btn bank-btn',
@@ -132,6 +134,23 @@ function home() {
         }, '📒 貼紙 ', h('span', { class: 'pill' }, `${store.stickers().length}/${STICKERS.length}`))),
     ),
   ));
+}
+
+// A screen listing one subject's games as big tiles.
+function gameList(title, modes, onPick) {
+  const tiles = Object.entries(modes).map(([key, m]) =>
+    h('button', {
+      class: 'mode-tile',
+      style: { background: m.color },
+      onclick: () => { sfx.tap(); onPick(key, m); },
+    }, h('div', { class: 'mode-icon' }, m.icon), h('div', { class: 'mode-name' }, m.name)));
+  show(h('div', { class: 'screen game-list' },
+    backBar(home, h('div', { class: 'title' }, title)),
+    h('div', { class: 'body' }, h('div', { class: 'mode-grid' }, tiles))));
+}
+
+function chooseChinese() {
+  gameList('📖 中文', MODES, (key, m) => { say(m.name); chooseCategory(key, 'zh'); });
 }
 
 // Parent corner opens only after holding the button for 2 seconds.
@@ -153,9 +172,10 @@ function parentButton() {
   return btn;
 }
 
-function backBar(onBack, middle = null, right = null) {
+// Top bar: back button (🏠 to the subject screen, ⬅️ one step back), a title, and the star badge.
+function backBar(onBack, middle = null, right = null, icon = '🏠') {
   return h('div', { class: 'topbar' },
-    h('button', { class: 'icon-btn', 'aria-label': '返回', onclick: () => { sfx.tap(); onBack(); } }, '🏠'),
+    h('button', { class: 'icon-btn', 'aria-label': '返回', onclick: () => { sfx.tap(); onBack(); } }, icon),
     middle || h('div', { class: 'title' }),
     right || starBadge());
 }
@@ -164,7 +184,11 @@ function backBar(onBack, middle = null, right = null) {
 function chooseCategory(modeKey, lang = 'zh') {
   const en = lang === 'en';
   const m = en ? EN_MODES[modeKey] : MODES[modeKey];
-  const cats = en ? englishCategories() : enabledCategories();
+  let cats = en ? englishCategories() : enabledCategories();
+  if (modeKey === 'spell') {
+    const ok = spellWords(englishWords());
+    cats = cats.filter(c => ok.some(w => w.cat === c.id));
+  }
   const speakName = en ? sayEn : say;
   const allName = en ? 'All' : '全部';
   const tiles = [
@@ -179,7 +203,7 @@ function chooseCategory(modeKey, lang = 'zh') {
     }, h('div', { class: 'cat-icon' }, c.emoji), h('div', { class: 'cat-name' }, en ? c.en : c.name))),
   ];
   show(h('div', { class: 'screen' },
-    backBar(home, h('div', { class: 'title' }, `${m.icon} ${m.name}`)),
+    backBar(en ? chooseEnglish : chooseChinese, h('div', { class: 'title' }, `${m.icon} ${m.name}`), null, '⬅️'),
     h('div', { class: 'body' }, h('div', { class: 'cat-grid' }, tiles)),
   ));
 }
@@ -222,25 +246,20 @@ function startMaths(op) {
 
 // ---------- English: pick a game ----------
 function chooseEnglish() {
-  const tiles = Object.entries(EN_MODES).map(([key, m]) => h('button', {
-    class: 'cat-tile math-op en',
-    style: { background: m.color },
-    onclick: () => { sfx.tap(); sayEn(m.name); chooseCategory(key, 'en'); },
-  }, h('div', { class: 'cat-icon' }, m.icon), h('div', { class: 'cat-name' }, m.name)));
-  show(h('div', { class: 'screen' },
-    backBar(home, h('div', { class: 'title' }, '🔤 English')),
-    h('div', { class: 'body' }, h('div', { class: 'math-op-grid' }, tiles))));
+  gameList('🔤 English', EN_MODES, (key, m) => { sayEn(m.name); chooseCategory(key, 'en'); });
 }
 
 // ---------- Game ----------
 function startGame(modeKey, catId, lang = 'zh') {
-  const m = MODES[modeKey];
-  const words = lang === 'en' ? englishWords() : allWords();
+  const m = (lang === 'en' ? EN_MODES : MODES)[modeKey];
+  let words = lang === 'en' ? englishWords() : allWords();
+  if (modeKey === 'spell') words = spellWords(words);
   const cats = enabledCategories().map(c => c.id);
   const pool = words.filter(w => (catId === 'all' ? cats.includes(w.cat) : w.cat === catId));
   if (!pool.length) { home(); return; }
   let size = store.settings().roundSize;
   if (modeKey === 'trace') size = Math.min(size, 4);
+  if (modeKey === 'spell') size = Math.min(size, 5);
   const round = store.pickRound(pool, Math.min(size, pool.length));
   playScreen(modeKey, m.mod, { words: round, pool: words, lang }, () => startGame(modeKey, catId, lang));
 }

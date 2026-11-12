@@ -125,6 +125,16 @@ export function parentCorner({ show, leave, applySettings }) {
     return h('label', { class: 'p-row' }, label, box);
   };
 
+  // ----- English spelling -----
+  const spellSeg = h('div', { class: 'p-seg' }, [[4, '≤4'], [6, '≤6'], [10, '全部']].map(([n, label]) => {
+    const b = h('button', { class: s.spellMax === n ? 'on' : '' }, label);
+    b.addEventListener('click', () => {
+      store.setSetting('spellMax', n);
+      spellSeg.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+    });
+    return b;
+  }));
+
   // ----- Categories -----
   const catBox = h('div', { class: 'p-cats' });
   const renderCats = () => {
@@ -181,6 +191,9 @@ export function parentCorner({ show, leave, applySettings }) {
         h('label', { class: 'p-row' }, '每日最多攞幾多粒星', capSel),
         toggle('答錯扣一粒星（聽聽揀揀、English、數學）', 'wrongPenalty'),
         starInfo),
+      section('🔤 English',
+        h('div', { class: 'p-row' }, '拼字遊戲：最長幾多個字母', spellSeg),
+        h('p', { class: 'p-muted' }, '≤4：cat、dog、milk…　≤6：apple、flower…　全部：watermelon…')),
       section('🔢 數學',
         h('div', { class: 'p-row' }, '最多幾位數', digitSeg),
         digitHint,

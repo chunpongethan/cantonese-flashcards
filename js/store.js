@@ -23,6 +23,7 @@ const defaults = () => ({
     mathDigits: 1,     // maths numbers up to 1, 2 or 3 digits
     mathAdd: true,
     mathSub: true,
+    spellMax: 4,       // longest English word in the spelling game (4, 6, or 10 = all)
   },
   stars: 0,            // the star bank balance
   daily: { date: '', earned: 0 },
