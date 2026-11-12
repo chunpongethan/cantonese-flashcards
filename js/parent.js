@@ -184,7 +184,8 @@ export function parentCorner({ show, leave, applySettings }) {
         h('label', { class: 'p-row' }, '語速', rate),
         h('div', { class: 'p-actions' },
           h('button', { class: 'p-btn', onclick: () => speech.speak('貓、狗、蘋果、飛機') }, '試聽廣東話'),
-          h('button', { class: 'p-btn', onclick: () => speech.speak('cat, dog, apple, aeroplane', { lang: 'en' }) }, '試聽 English'))),
+          h('button', { class: 'p-btn', onclick: () => speech.speak('cat, dog, apple, aeroplane', { lang: 'en' }) }, '試聽 English')),
+        soundCheck()),
       section('🎮 遊戲',
         toggle('顯示粵拼 (Jyutping)', 'jyutping'),
         toggle('音效', 'sound', applySettings),
@@ -207,6 +208,40 @@ export function parentCorner({ show, leave, applySettings }) {
       section('📊 進度', progressLine, reset),
       h('p', { class: 'p-foot' }, '小貼士：每日玩 5–10 分鐘就夠。錯咗會自動多啲出現。'),
     )));
+}
+
+// 🔍 Sound check: test the voice on this phone and explain what to fix.
+function soundCheck() {
+  const out = h('div', { class: 'p-check' });
+  const btn = h('button', { class: 'p-btn p-check-btn', onclick: async () => {
+    btn.disabled = true;
+    out.replaceChildren(h('p', { class: 'p-muted' }, '檢查緊，請聽吓有冇聲…'));
+    const r = await speech.selfTest('zh');
+    btn.disabled = false;
+    const line = (ok, text) => h('p', { class: ok ? 'p-ok' : 'p-bad' }, `${ok ? '✔' : '✘'} ${text}`);
+    const tips = [];
+    const rows = [
+      line(r.supported, r.supported ? '瀏覽器支援語音' : '呢個瀏覽器唔支援語音'),
+      line(r.voices > 0, `搵到 ${r.voices} 把聲（廣東話 ${r.cantonese.length} 把，英文 ${r.english} 把）`),
+      line(!!r.using, r.using ? `用緊：${r.using}` : '未有廣東話聲音'),
+      line(r.started || r.ended, r.started || r.ended ? '測試句子有開始讀' : `測試句子冇讀出${r.error ? `（錯誤：${r.error}）` : ''}`),
+    ];
+    if (!r.supported) tips.push('請用 Safari（iPhone / iPad）或者 Chrome（Android）打開。');
+    if (r.supported && !r.cantonese.length) {
+      tips.push(r.isIOS
+        ? 'iPhone：設定 › 輔助使用 › 朗讀內容 › 聲音 › 中文 › 中文（香港），下載一把聲音，然後完全關閉再開返呢個遊戲。'
+        : 'Android：設定 › 文字轉語音輸出 › 揀「Google 語音服務」› 安裝語音數據 › 粵語（香港），然後完全關閉再開返呢個遊戲。');
+    }
+    if (r.supported && !(r.started || r.ended)) {
+      if (r.isIOS) tips.push('iPhone：檢查側邊嘅靜音掣同埋音量，再撳一次「檢查聲音」。');
+      if (r.isIOS && r.standalone) tips.push('如果仲係冇聲：試吓用 Safari 直接打開遊戲網址（唔用主畫面圖示），有啲 iOS 版本喺主畫面 App 入面冇語音。');
+      if (r.error === 'not-allowed') tips.push('瀏覽器要先撳一下畫面先可以出聲：撳一下畫面再試。');
+      if (!r.isIOS) tips.push('Android：檢查媒體音量（唔係鈴聲音量），再試一次。');
+    }
+    if ((r.started || r.ended) && r.cantonese.length) tips.push('如果測試有聲但遊戲入面冇聲：完全關閉遊戲再開返，喺開頭撳一下 ▶。');
+    out.replaceChildren(...rows, ...tips.map(t => h('p', { class: 'p-tip' }, `💡 ${t}`)));
+  } }, '🔍 檢查聲音');
+  return h('div', {}, btn, out);
 }
 
 // ☁️ Cloud sync: link phones with a family code.

@@ -758,6 +758,13 @@ button:active { transform: scale(.96); }
 .evo-arrow { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 22px; color: #BCAAA4; }
 .evo-arrow .evo-dots span { width: 9px; height: 9px; }
 
+/* ---------- Parent corner: sound check ---------- */
+.p-check-btn { width: 100%; margin-top: 8px; }
+.p-check p { margin: 6px 0; font-size: 15px; }
+.p-check .p-ok { color: #2E7D32; }
+.p-check .p-bad { color: #C62828; }
+.p-check .p-tip { background: #FFF8E1; border-radius: 10px; padding: 8px 10px; }
+
 /* ---------- Parent corner: cloud sync ---------- */
 .p-code-row { display: flex; align-items: center; gap: 10px; }
 .p-code {

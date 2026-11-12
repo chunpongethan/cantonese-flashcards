@@ -63,31 +63,56 @@ export function configure({ voiceURI, enVoiceURI, rate: r } = {}) {
   if (r !== undefined) rate = r;
 }
 
+// Last real speech error (for the parent corner's sound check).
+let lastError = '';
+
+// The voice list can be rebuilt after page load (iOS/Android); always use the current object.
+function liveVoice(v) {
+  if (!v || !synth) return v;
+  return synth.getVoices().find(x => x.voiceURI === v.voiceURI && x.name === v.name) || v;
+}
+
 // iOS only allows speech that starts from a tap; call this from the first tap.
 export function unlock() {
   if (!synth) return;
-  const u = new SpeechSynthesisUtterance(' ');
-  u.volume = 0;
-  synth.speak(u);
+  // Keep playing even when the iPhone's silent switch is on (Safari 16.4+).
+  try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) { /* ignore */ }
+  try {
+    if (synth.paused) synth.resume();
+    const u = new SpeechSynthesisUtterance('ok');
+    u.volume = 0;
+    u.rate = 2;
+    synth.speak(u);
+  } catch (e) { /* ignore */ }
 }
 
 export function cancel() {
   if (synth) synth.cancel();
 }
 
+function buildUtterance(text, opts) {
+  const english = opts.lang === 'en';
+  const voice = liveVoice(english ? chosenEn : chosen);
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = voice ? voice.lang : english ? 'en-GB' : 'zh-HK';
+  if (voice) u.voice = voice;
+  u.rate = opts.rate ?? rate;
+  u.pitch = 1.1;
+  return u;
+}
+
 // Speak text and resolve when finished (or after a safety timeout).
 // opts.lang: 'en' for English, anything else for Cantonese.
 export function speak(text, opts = {}) {
   if (!synth || !text) return Promise.resolve();
-  synth.cancel();
+  // iOS Safari can silently drop an utterance queued in the same moment as cancel(),
+  // so only cancel when something is playing, and then wait a beat before speaking.
+  const busy = synth.speaking || synth.pending;
+  if (busy) synth.cancel();
+  // Android Chrome sometimes gets stuck "paused".
+  if (synth.paused) synth.resume();
   return new Promise(resolve => {
-    const english = opts.lang === 'en';
-    const voice = english ? chosenEn : chosen;
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = voice ? voice.lang : english ? 'en-GB' : 'zh-HK';
-    if (voice) u.voice = voice;
-    u.rate = opts.rate ?? rate;
-    u.pitch = 1.1;
+    const u = buildUtterance(text, opts);
     let done = false;
     const finish = () => {
       if (done) return;
@@ -96,11 +121,48 @@ export function speak(text, opts = {}) {
       if (current === u) current = null;
       resolve();
     };
-    const perChar = english ? 120 : 550;
-    const timer = setTimeout(finish, 1500 + (text.length * perChar) / u.rate);
+    const perChar = opts.lang === 'en' ? 120 : 550;
+    const timer = setTimeout(finish, 1800 + (text.length * perChar) / u.rate);
     u.onend = finish;
-    u.onerror = finish;
+    u.onerror = e => {
+      if (e && e.error && e.error !== 'interrupted' && e.error !== 'canceled') lastError = e.error;
+      finish();
+    };
+    current = u;
+    const go = () => { try { synth.speak(u); } catch (e) { lastError = e.message; finish(); } };
+    if (busy) setTimeout(go, 80); else go();
+  });
+}
+
+// Sound check for the parent corner: what this phone has, and whether a test sentence plays.
+export async function selfTest(lang = 'zh') {
+  const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const standalone = window.matchMedia?.('(display-mode: standalone)').matches || navigator.standalone === true;
+  const r = {
+    supported: !!synth,
+    voices: synth ? synth.getVoices().length : 0,
+    cantonese: cantoneseVoices().map(v => `${v.name} (${v.lang})`),
+    english: englishVoices().length,
+    using: chosen ? `${chosen.name} (${chosen.lang})` : '',
+    isIOS,
+    standalone,
+    started: false,
+    ended: false,
+    error: lastError,
+  };
+  if (!synth) return r;
+  refresh();
+  synth.cancel();
+  if (synth.paused) synth.resume();
+  await new Promise(res => setTimeout(res, 100));
+  await new Promise(res => {
+    const u = buildUtterance(lang === 'en' ? 'Hello! This is a sound check.' : '你好！我係聲音測試。', { lang });
+    const t = setTimeout(res, 5000);
+    u.onstart = () => { r.started = true; };
+    u.onend = () => { r.ended = true; clearTimeout(t); res(); };
+    u.onerror = e => { r.error = (e && e.error) || 'error'; clearTimeout(t); res(); };
     current = u;
     synth.speak(u);
   });
+  return r;
 }
