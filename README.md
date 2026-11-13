@@ -24,12 +24,13 @@ The home screen has three subjects: **📖 中文**, **🔤 English** and **🔢
 Every round ends with stars and a **monster sticker** for the 📒 怪獸圖鑑 (monster book): 20 original monster families, each with a baby and an evolved form (40 to collect). New monsters come first; collecting 3 of the same baby evolves it.
 
 ## Stars and gifts
-- Each right answer (or flipped card, matched pair, traced word) earns 1 ⭐, up to a **daily limit** (20 by default). Stars lost for wrong answers don't free up room under the limit.
+- Each right answer (or flipped card, matched pair, traced word) earns 1 ⭐, up to a **daily limit** (20 by default). The limit counts **net** stars: stars earned today minus stars lost for wrong answers.
 - In 聽聽揀揀 (Listen & Pick), English Listen & Pick and 數學 (Maths), each **wrong answer loses 1 ⭐**. The bank never goes below 0.
 - Stars are kept in the **⭐ 星星銀行** (star bank) on the home screen, where the child can swap them for gifts. Each swap asks the child to confirm first.
 
 ## Parent corner
 Press and hold ⚙️ on the home screen for 2 seconds. There you can:
+- **📈 學習報告 (learning report):** for today, 7 days or 30 days: rounds, questions, first-try accuracy and net stars; a 7-day activity chart; first-try accuracy per section (中文, English, 數學) and per game; and a 要多練習 (needs practice) list of the items he gets wrong most;
 - choose the Cantonese and English voices and the speed, turn Jyutping on or off, set cards per round, pick categories, and reset progress;
 - **⭐ 星星規則 (star rules):** set the daily star limit (or 不限 for no limit) and turn star loss for wrong answers on or off;
 - **🔤 English:** the longest word in the spelling game (≤4 letters by default, ≤6, or all);

@@ -82,6 +82,7 @@ export function start(ctx) {
     const question = `${q.a}${WORD[q.op]}${q.b}等於幾多？`;
     const ask = () => ctx.speak(question);
     let locked = false;
+    let firstTry = true;
 
     const slot = h('span', { class: digits === 1 ? 'ans' : 'vnum ans' }, '?');
     const n = digits === 1 ? 3 : 4;
@@ -98,6 +99,7 @@ export function start(ctx) {
           slot.classList.add('right');
           ctx.sfx.chime();
           ctx.confetti();
+          ctx.record({ id: `math-${q.op}-${digits}d` }, firstTry);
           ctx.star();
           await ctx.speak(`${ctx.praise()}${q.a}${WORD[q.op]}${q.b}等於${q.answer}！`);
           await wait(400);
@@ -105,6 +107,7 @@ export function start(ctx) {
           i++;
           if (i >= total) ctx.done(); else round();
         } else {
+          firstTry = false;
           ctx.wiggle(b);
           b.classList.add('dim');
           ctx.sfx.boop();

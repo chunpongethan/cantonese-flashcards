@@ -27,7 +27,8 @@ const defaults = () => ({
     spellMax: 4,       // longest English word in the spelling game (4, 6, or 10 = all)
   },
   stars: 0,            // the star bank balance
-  daily: { date: '', earned: 0 },
+  daily: { date: '', earned: 0, lost: 0 }, // today's stars earned and lost in games
+  activity: {},        // 'Y-M-D' -> game -> { right, wrong, seen, rounds, gained, lost } (last 60 days)
   stickers: [],        // old emoji stickers (replaced by monsters)
   monsters: {},        // monster family id -> copies collected (evolves at EVOLVE_AT)
   stats: {},           // id -> { seen, right, wrong, last }
@@ -100,7 +101,7 @@ export function exportSections() {
     settings,
     gifts: data.gifts,
     words,
-    progress: { stars: data.stars, daily: data.daily, stickers: data.stickers, monsters: data.monsters, stats: data.stats },
+    progress: { stars: data.stars, daily: data.daily, stickers: data.stickers, monsters: data.monsters, stats: data.stats, activity: data.activity },
     redemptions: data.redemptions,
   });
 }
@@ -127,6 +128,7 @@ export function importSections(sec) {
     if (p.stickers) data.stickers = p.stickers;
     if (p.monsters) data.monsters = p.monsters;
     if (p.stats) data.stats = p.stats;
+    if (p.activity) data.activity = p.activity;
   }
   if (sec.redemptions) data.redemptions = sec.redemptions;
   save(true);
@@ -163,7 +165,14 @@ function todayKey() {
 }
 
 // Stars earned today (stars lost for wrong answers don't give room back).
-export const earnedToday = () => (data.daily.date === todayKey() ? data.daily.earned : 0);
+function today() {
+  if (data.daily.date !== todayKey()) data.daily = { date: todayKey(), earned: 0, lost: 0 };
+  data.daily.lost ||= 0;
+  return data.daily;
+}
+
+// Net stars today: earned minus lost for wrong answers. This is what the daily limit counts.
+export const earnedToday = () => (data.daily.date === todayKey() ? data.daily.earned - (data.daily.lost || 0) : 0);
 
 export function capReached() {
   const cap = data.settings.dailyCap;
@@ -173,8 +182,7 @@ export function capReached() {
 // Adds one star unless today's limit is reached. Returns true if a star was added.
 export function earnStar() {
   if (capReached()) return false;
-  if (data.daily.date !== todayKey()) data.daily = { date: todayKey(), earned: 0 };
-  data.daily.earned++;
+  today().earned++;
   data.stars++;
   save();
   return true;
@@ -184,9 +192,33 @@ export function earnStar() {
 export function loseStar() {
   if (data.stars <= 0) return false;
   data.stars--;
+  today().lost++;
   save();
   return true;
 }
+
+// ---------- Activity log (for the parent's learning report) ----------
+export const dayKey = (d = new Date()) => `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+export const activity = () => data.activity || {};
+
+export function logActivity(game, add) {
+  data.activity ||= {};
+  const day = (data.activity[todayKey()] ||= {});
+  const g = (day[game] ||= { right: 0, wrong: 0, seen: 0, rounds: 0, gained: 0, lost: 0 });
+  for (const [k, v] of Object.entries(add)) g[k] = (g[k] || 0) + v;
+  // Keep the last 60 days.
+  const keys = Object.keys(data.activity);
+  if (keys.length > 60) {
+    const cutoff = Date.now() - 60 * 864e5;
+    for (const k of keys) {
+      const [y, m, d] = k.split('-').map(Number);
+      if (new Date(y, m - 1, d).getTime() < cutoff) delete data.activity[k];
+    }
+  }
+  save();
+}
+
+export const allStats = () => data.stats;
 
 // ---------- Gifts ----------
 export const gifts = () => data.gifts;

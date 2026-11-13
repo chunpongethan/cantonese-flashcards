@@ -10,7 +10,7 @@ export function starBank({ show, header, sfx }) {
     const balance = store.stars();
     const cap = store.settings().dailyCap;
     // Clamp for display in case a parent lowers the limit after stars were earned today.
-    const today = cap > 0 ? Math.min(store.earnedToday(), cap) : store.earnedToday();
+    const today = Math.max(0, cap > 0 ? Math.min(store.earnedToday(), cap) : store.earnedToday());
     const gifts = [...store.gifts()].sort((a, b) => a.cost - b.cost);
 
     const todayBox = cap > 0

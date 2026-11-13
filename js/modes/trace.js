@@ -43,6 +43,7 @@ export async function start(ctx) {
     ctx.progress(i, words.length);
     const chars = [...w.char];
     let ci = 0;
+    let mistakes = 0;
 
     const size = Math.floor(Math.min(window.innerWidth - 40, window.innerHeight * 0.48, 380));
     const target = h('div', { class: 'trace-box', style: { width: `${size}px`, height: `${size}px` } });
@@ -84,7 +85,7 @@ export async function start(ctx) {
         showHintAfterMisses: 2,
         highlightOnComplete: true,
         onCorrectStroke: () => ctx.sfx.pop(),
-        onMistake: () => ctx.sfx.boop(),
+        onMistake: () => { mistakes++; ctx.sfx.boop(); },
         onComplete: () => charDone(),
       });
     }
@@ -101,7 +102,7 @@ export async function start(ctx) {
         demoThenQuiz();
         return;
       }
-      ctx.record(w, true);
+      ctx.record(w, mistakes <= 2);
       ctx.star();
       ctx.confetti();
       await ctx.speak(`${ctx.praise()}${w.say}！`);

@@ -306,6 +306,8 @@ function playScreen(modeKey, mod, extra, replay) {
   let roundStars = 0;
   let roundLost = 0;
   let capHit = false;
+  // Which game this is, for the parent's learning report (e.g. zh-pick, en-spell, maths).
+  const game = modeKey === 'maths' ? 'maths' : `${extra.lang === 'en' ? 'en' : 'zh'}-${modeKey}`;
 
   const ctx = {
     ...extra,
@@ -319,8 +321,8 @@ function playScreen(modeKey, mod, extra, replay) {
     confetti,
     wiggle,
     level: id => store.rightCount(id),
-    seen: w => store.markSeen(w.id),
-    record: (w, ok) => store.record(w.id, ok),
+    seen: w => { store.markSeen(w.id); store.logActivity(game, { seen: 1 }); },
+    record: (w, ok) => { store.record(w.id, ok); store.logActivity(game, ok ? { right: 1 } : { wrong: 1 }); },
     star: () => {
       if (store.earnStar()) {
         roundStars++;
@@ -342,7 +344,7 @@ function playScreen(modeKey, mod, extra, replay) {
       progress.replaceChildren(...Array.from({ length: total }, (_, k) =>
         h('span', { class: k < i ? 'dot done' : k === i ? 'dot now' : 'dot' })));
     },
-    done: () => { if (token === gameToken) reward({ gained: roundStars, lost: roundLost, replay, lang: extra.lang }); },
+    done: () => { if (token === gameToken) store.logActivity(game, { rounds: 1, gained: roundStars, lost: roundLost }); if (token === gameToken) reward({ gained: roundStars, lost: roundLost, replay, lang: extra.lang }); },
   };
   mod.start(ctx);
 }

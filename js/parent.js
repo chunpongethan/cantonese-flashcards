@@ -5,6 +5,7 @@ import * as store from './store.js';
 import { h, pic } from './ui.js';
 import { allWords, allCategories, categoryOptions } from './catalog.js';
 import * as sync from './sync.js';
+import { reportScreen } from './report.js';
 
 const HANZI_RE = /^[㐀-䶿一-鿿豈-﫿]{1,4}$/u;
 
@@ -100,7 +101,7 @@ export function parentCorner({ show, leave, applySettings }) {
   const starInfo = h('p', { class: 'p-muted' });
   const renderStarInfo = () => {
     const cap = store.settings().dailyCap;
-    starInfo.textContent = `今日已攞 ${store.earnedToday()}${cap ? ` / ${cap}` : ''} 粒 · 銀行有 ⭐ ${store.stars()}`;
+    starInfo.textContent = `今日淨攞 ${store.earnedToday()}${cap ? ` / ${cap}` : ''} 粒（攞到減答錯扣咗）· 銀行有 ⭐ ${store.stars()}`;
   };
   renderStarInfo();
   capSel.addEventListener('change', () => { store.setSetting('dailyCap', Number(capSel.value)); renderStarInfo(); });
@@ -178,6 +179,10 @@ export function parentCorner({ show, leave, applySettings }) {
       h('div', { class: 'title' }, '家長設定'),
       h('div', {})),
     h('div', { class: 'body' },
+      h('button', { class: 'p-btn p-primary p-report-btn', onclick: () => {
+        offVoices();
+        reportScreen({ show, back: () => parentCorner({ show, leave, applySettings }) });
+      } }, '📈 學習報告：睇吓佢每個部分做得點'),
       section('☁️ 雲端同步', cloudSection(() => { applySettings(); parentCorner({ show, leave, applySettings }); })),
       section('🔊 廣東話聲音',
         voiceInfo,
