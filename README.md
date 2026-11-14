@@ -32,6 +32,7 @@ Every round ends with stars and a **monster sticker** for the 📒 怪獸圖鑑 
 Press and hold ⚙️ on the home screen for 2 seconds. There you can:
 - **📈 學習報告 (learning report):** for today, 7 days or 30 days: rounds, questions, first-try accuracy and net stars; a 7-day activity chart; first-try accuracy per section (中文, English, 數學) and per game; and a 要多練習 (needs practice) list of the items he gets wrong most;
 - choose the Cantonese and English voices and the speed, turn Jyutping on or off, set cards per round, pick categories, and reset progress;
+- **⏱️ 每日回合上限 (daily round limits):** the most rounds per day for each game (不限 / 1–10), or set every game at once. Game tiles show the rounds left (e.g. 2/3); a game that has used its rounds is locked with 🔒 until tomorrow, and the reward screen hides 🔁;
 - **⭐ 星星規則 (star rules):** set the daily star limit (or 不限 for no limit) and turn star loss for wrong answers on or off;
 - **🔤 English:** the longest word in the spelling game (≤4 letters by default, ≤6, or all);
 - **🔢 數學 (maths):** numbers up to 1, 2 or 3 digits (0–9 / 0–99 / 0–999), and turn 加數 (adding) and 減數 (taking away) on or off;

@@ -92,6 +92,25 @@ function toast(text) {
   setTimeout(() => t.remove(), 2600);
 }
 
+// Game id used for the report and the parent's daily round limits.
+const gameId = (modeKey, lang = 'zh') => (modeKey === 'maths' ? 'maths' : `${lang === 'en' ? 'en' : 'zh'}-${modeKey}`);
+
+// The parent's daily round limit for this game is used up.
+function blocked(lang = 'zh') {
+  sfx.boop();
+  toast('今日玩夠喇 🌙 聽日再玩');
+  if (lang === 'en') speech.speak("That's enough of this game today. Play again tomorrow!", { lang: 'en' });
+  else speech.speak('今日玩夠喇，聽日再玩啦！可以揀第二個遊戲。');
+}
+
+// "2/3" on a game tile when the parent has set a limit.
+function limitBadge(game) {
+  const limit = store.roundLimit(game);
+  if (!limit) return null;
+  const left = Math.max(0, limit - store.roundsToday(game));
+  return h('div', { class: `round-badge ${left ? '' : 'none-left'}` }, left ? `${left}/${limit}` : '🔒');
+}
+
 // ---------- Splash (first tap unlocks sound on phones) ----------
 function splash() {
   const go = () => {
@@ -127,7 +146,8 @@ function home() {
   h('div', { class: 'subject-icon' }, sj.icon),
   h('div', { class: 'subject-text' },
     h('div', { class: 'subject-name' }, sj.name),
-    h('div', { class: 'subject-sub' }, sj.sub))));
+    h('div', { class: 'subject-sub' }, sj.sub)),
+  sj.key === 'math' ? limitBadge('maths') : null));
 
   show(h('div', { class: 'screen home' },
     h('div', { class: 'topbar' },
@@ -151,13 +171,16 @@ function home() {
 }
 
 // A screen listing one subject's games as big tiles.
-function gameList(title, modes, onPick) {
-  const tiles = Object.entries(modes).map(([key, m]) =>
-    h('button', {
-      class: 'mode-tile',
+function gameList(title, modes, onPick, lang = 'zh') {
+  const tiles = Object.entries(modes).map(([key, m]) => {
+    const game = gameId(key, lang);
+    const open = store.canPlay(game);
+    return h('button', {
+      class: `mode-tile ${open ? '' : 'locked'}`,
       style: { background: m.color },
-      onclick: () => { sfx.tap(); onPick(key, m); },
-    }, h('div', { class: 'mode-icon' }, m.icon), h('div', { class: 'mode-name' }, m.name)));
+      onclick: () => { if (!store.canPlay(game)) { blocked(lang); return; } sfx.tap(); onPick(key, m); },
+    }, h('div', { class: 'mode-icon' }, m.icon), h('div', { class: 'mode-name' }, m.name), limitBadge(game));
+  });
   show(h('div', { class: 'screen game-list' },
     backBar(home, h('div', { class: 'title' }, title)),
     h('div', { class: 'body' }, h('div', { class: 'mode-grid' }, tiles))));
@@ -172,6 +195,7 @@ function chooseChinese() {
 
 // 部首 / 填字: a round picked from the school lessons (missed ones come up more).
 function startLessonGame(key, lang = 'zh') {
+  if (!store.canPlay(gameId(key, lang))) { blocked(lang); return; }
   const m = (lang === 'en' ? EN_MODES : MODES)[key];
   const round = store.pickRound(m.items, Math.min(store.settings().roundSize, m.items.length));
   playScreen(key, m.mod, { words: round, pool: m.items, lang }, () => startLessonGame(key, lang));
@@ -249,6 +273,7 @@ function enabledMathOps() {
 }
 
 function chooseMaths() {
+  if (!store.canPlay('maths')) { blocked(); return; }
   const ops = enabledMathOps();
   if (ops.length === 1) { startMaths(ops[0]); return; }
   const digits = store.settings().mathDigits;
@@ -265,6 +290,7 @@ function chooseMaths() {
 }
 
 function startMaths(op) {
+  if (!store.canPlay('maths')) { blocked(); return; }
   playScreen('maths', mathsMode, { op, words: [], pool: [] }, () => startMaths(op));
 }
 
@@ -273,11 +299,12 @@ function chooseEnglish() {
   gameList('🔤 English', EN_MODES, (key, m) => {
     sayEn(m.name);
     if (m.items) startLessonGame(key, 'en'); else chooseCategory(key, 'en');
-  });
+  }, 'en');
 }
 
 // ---------- Game ----------
 function startGame(modeKey, catId, lang = 'zh') {
+  if (!store.canPlay(gameId(modeKey, lang))) { blocked(lang); return; }
   const m = (lang === 'en' ? EN_MODES : MODES)[modeKey];
   let words = lang === 'en' ? englishWords() : allWords();
   if (modeKey === 'spell') words = spellWords(words);
@@ -307,7 +334,7 @@ function playScreen(modeKey, mod, extra, replay) {
   let roundLost = 0;
   let capHit = false;
   // Which game this is, for the parent's learning report (e.g. zh-pick, en-spell, maths).
-  const game = modeKey === 'maths' ? 'maths' : `${extra.lang === 'en' ? 'en' : 'zh'}-${modeKey}`;
+  const game = gameId(modeKey, extra.lang);
 
   const ctx = {
     ...extra,
@@ -344,14 +371,16 @@ function playScreen(modeKey, mod, extra, replay) {
       progress.replaceChildren(...Array.from({ length: total }, (_, k) =>
         h('span', { class: k < i ? 'dot done' : k === i ? 'dot now' : 'dot' })));
     },
-    done: () => { if (token === gameToken) store.logActivity(game, { rounds: 1, gained: roundStars, lost: roundLost }); if (token === gameToken) reward({ gained: roundStars, lost: roundLost, replay, lang: extra.lang }); },
+    done: () => { if (token === gameToken) store.logActivity(game, { rounds: 1, gained: roundStars, lost: roundLost }); if (token === gameToken) reward({ gained: roundStars, lost: roundLost, replay, lang: extra.lang, game }); },
   };
   mod.start(ctx);
 }
 
 // ---------- Reward ----------
-async function reward({ gained, lost, replay, lang }) {
+async function reward({ gained, lost, replay, lang, game }) {
   const en = lang === 'en';
+  const moreToday = store.canPlay(game);
+  const limit = store.roundLimit(game);
   const full = store.capReached();
   const got = gained > 0 ? store.addMonster() : null;
   const fam = got && family(got.id);
@@ -367,9 +396,10 @@ async function reward({ gained, lost, replay, lang }) {
         lost ? h('span', { class: 'reward-lost' }, `  −${lost}`) : null),
       full ? h('div', { class: 'reward-full' }, '今日嘅星星儲滿喇！聽日再嚟 🌙') : null,
       h('div', { class: 'reward-bank' }, `銀行：⭐ ${store.stars()}`),
+      !moreToday ? h('div', { class: 'reward-full' }, `今日呢個遊戲玩夠喇（${limit}/${limit}）🌙`) : null,
       got ? monsterReward(fam, got) : null,
       h('div', { class: 'reward-actions' },
-        h('button', { class: 'big-btn', 'aria-label': '再玩', onclick: () => { sfx.tap(); replay(); } }, '🔁'),
+        moreToday ? h('button', { class: 'big-btn', 'aria-label': '再玩', onclick: () => { sfx.tap(); replay(); } }, '🔁') : null,
         h('button', { class: 'big-btn', 'aria-label': '返主頁', onclick: () => { sfx.tap(); home(); } }, '🏠')),
     )));
   const token = gameToken;

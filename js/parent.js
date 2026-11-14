@@ -5,7 +5,7 @@ import * as store from './store.js';
 import { h, pic } from './ui.js';
 import { allWords, allCategories, categoryOptions } from './catalog.js';
 import * as sync from './sync.js';
-import { reportScreen } from './report.js';
+import { reportScreen, SECTIONS } from './report.js';
 
 const HANZI_RE = /^[㐀-䶿一-鿿豈-﫿]{1,4}$/u;
 
@@ -202,6 +202,7 @@ export function parentCorner({ show, leave, applySettings }) {
       section('🔤 English',
         h('div', { class: 'p-row' }, '拼字遊戲：最長幾多個字母', spellSeg),
         h('p', { class: 'p-muted' }, '≤4：cat、dog、milk…　≤6：apple、flower…　全部：watermelon…')),
+      section('⏱️ 每日回合上限', roundLimits()),
       section('🔢 數學',
         h('div', { class: 'p-row' }, '最多幾位數', digitSeg),
         digitHint,
@@ -213,6 +214,43 @@ export function parentCorner({ show, leave, applySettings }) {
       section('📊 進度', progressLine, reset),
       h('p', { class: 'p-foot' }, '小貼士：每日玩 5–10 分鐘就夠。錯咗會自動多啲出現。'),
     )));
+}
+
+// ⏱️ Daily round limit for each game (0 = no limit).
+const LIMIT_OPTIONS = [0, 1, 2, 3, 4, 5, 8, 10];
+
+function roundLimits() {
+  const box = h('div', { class: 'p-limits' });
+  const select = (value, onchange) => {
+    const sel = h('select', { class: 'p-select' }, LIMIT_OPTIONS.map(n =>
+      h('option', { value: n, selected: n === value }, n ? `${n} 回合` : '不限')));
+    sel.addEventListener('change', () => onchange(Number(sel.value)));
+    return sel;
+  };
+  const render = () => {
+    const games = SECTIONS.flatMap(sec => sec.games.map(([g]) => g));
+    const values = games.map(g => store.roundLimit(g));
+    const same = values.every(v => v === values[0]) ? values[0] : -1;
+    const all = h('select', { class: 'p-select' },
+      same === -1 ? h('option', { value: -1, selected: true }, '各有不同') : null,
+      LIMIT_OPTIONS.map(n => h('option', { value: n, selected: n === same }, n ? `${n} 回合` : '不限')));
+    all.addEventListener('change', () => {
+      const n = Number(all.value);
+      if (n < 0) return;
+      games.forEach(g => store.setRoundLimit(g, n));
+      render();
+    });
+    box.replaceChildren(
+      h('p', { class: 'p-muted' }, '每個遊戲每日最多玩幾多回合。玩夠之後個遊戲會鎖住，聽日再開。'),
+      h('label', { class: 'p-row p-limit-all' }, '全部遊戲一齊設定', all),
+      ...SECTIONS.map(sec => h('div', { class: 'p-limit-group' },
+        h('div', { class: 'p-limit-title' }, sec.name),
+        sec.games.map(([g, name]) => h('label', { class: 'p-row p-limit-row' },
+          h('span', {}, name, h('span', { class: 'r-sub' }, `　今日玩咗 ${store.roundsToday(g)}`)),
+          select(store.roundLimit(g), n => { store.setRoundLimit(g, n); render(); }))))));
+  };
+  render();
+  return box;
 }
 
 // 🔍 Sound check: test the voice on this phone and explain what to fix.

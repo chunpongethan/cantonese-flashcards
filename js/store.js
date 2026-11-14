@@ -24,7 +24,8 @@ const defaults = () => ({
     mathDigits: 1,     // maths numbers up to 1, 2 or 3 digits
     mathAdd: true,
     mathSub: true,
-    spellMax: 4,       // longest English word in the spelling game (4, 6, or 10 = all)
+    spellMax: 4,
+    roundLimits: {},   // game id (zh-pick, en-spell, maths…) -> most rounds per day (0/missing = no limit)       // longest English word in the spelling game (4, 6, or 10 = all)
   },
   stars: 0,            // the star bank balance
   daily: { date: '', earned: 0, lost: 0 }, // today's stars earned and lost in games
@@ -219,6 +220,18 @@ export function logActivity(game, add) {
 }
 
 export const allStats = () => data.stats;
+
+// ---------- Daily round limits per game ----------
+export const roundsToday = game => (data.activity?.[todayKey()]?.[game]?.rounds) || 0;
+export const roundLimit = game => (data.settings.roundLimits || {})[game] || 0;
+export function canPlay(game) {
+  const limit = roundLimit(game);
+  return !limit || roundsToday(game) < limit;
+}
+export function setRoundLimit(game, n) {
+  data.settings.roundLimits = { ...(data.settings.roundLimits || {}), [game]: n };
+  save();
+}
 
 // ---------- Gifts ----------
 export const gifts = () => data.gifts;

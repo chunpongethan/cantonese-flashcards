@@ -758,6 +758,22 @@ button:active { transform: scale(.96); }
 .evo-arrow { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 22px; color: #BCAAA4; }
 .evo-arrow .evo-dots span { width: 9px; height: 9px; }
 
+/* ---------- Daily round limits ---------- */
+.mode-tile { position: relative; }
+.round-badge {
+  position: absolute; top: 8px; right: 8px;
+  background: rgba(255, 255, 255, .92); color: var(--ink); text-shadow: none;
+  border-radius: 999px; padding: 2px 9px; font: 700 15px system-ui, sans-serif;
+}
+.subject-tile { position: relative; }
+.subject-tile .round-badge { top: 10px; right: 12px; }
+.mode-tile.locked { filter: grayscale(.85); opacity: .55; }
+.p-limit-all { font-weight: 700; }
+.p-limit-group { border-top: 1px solid #F3EDEA; padding-top: 6px; margin-top: 4px; }
+.p-limit-title { font-weight: 700; font-size: 15px; margin: 4px 0; }
+.p-limit-row { padding: 4px 0; }
+.p-limit-row > span { display: flex; flex-direction: column; }
+
 /* ---------- Learning report ---------- */
 :root {
   --r-series: #3D7FD6;      /* single data hue for meters and bars */

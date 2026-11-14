@@ -6,7 +6,7 @@ import { allWords, englishWords } from './catalog.js';
 import { FILL_ITEMS } from './lessons.js';
 import { EN_FILL, NUMBER_WORDS } from './english-lessons.js';
 
-const SECTIONS = [
+export const SECTIONS = [
   { key: 'zh', name: '📖 中文', games: [
     ['zh-flip', '翻翻卡'], ['zh-pick', '聽聽揀揀'], ['zh-match', '配對遊戲'],
     ['zh-trace', '寫寫字'], ['zh-radical', '部首'], ['zh-fill', '填字'],
