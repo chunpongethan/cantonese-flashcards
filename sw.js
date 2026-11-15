@@ -1,6 +1,6 @@
 // Offline support: app files are cached up front; fonts, Hanzi Writer and
 // stroke data are cached the first time they load.
-const VERSION = 'v18';
+const VERSION = 'v19';
 const APP_CACHE = `app-${VERSION}`;
 const RUNTIME_CACHE = `runtime-${VERSION}`;
 
@@ -41,7 +41,7 @@ const APP_FILES = [
 const RUNTIME_HOSTS = ['cdn.jsdelivr.net', 'fonts.googleapis.com', 'fonts.gstatic.com', 'www.gstatic.com'];
 
 self.addEventListener('install', event => {
-  event.waitUntil(caches.open(APP_CACHE).then(c => c.addAll(APP_FILES)).then(() => self.skipWaiting()));
+  event.waitUntil(caches.open(APP_CACHE).then(c => c.addAll(APP_FILES.map(u => new Request(u, { cache: 'no-cache' })))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', event => {
@@ -57,12 +57,16 @@ self.addEventListener('fetch', event => {
   const url = new URL(req.url);
 
   // Own files: network first (so updates show up), fall back to cache offline.
+  // `no-cache` makes the browser re-check with the server instead of using its own
+  // 10-minute copy (GitHub Pages max-age), so a phone never mixes old and new files.
   if (url.origin === location.origin) {
     event.respondWith(
-      fetch(req)
+      fetch(req.url, { cache: 'no-cache', credentials: 'same-origin' })
         .then(res => {
-          const copy = res.clone();
-          caches.open(APP_CACHE).then(c => c.put(req, copy));
+          if (res.ok) {
+            const copy = res.clone();
+            caches.open(APP_CACHE).then(c => c.put(req, copy));
+          }
           return res;
         })
         .catch(() => caches.match(req, { ignoreSearch: true })));
