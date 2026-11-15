@@ -24,7 +24,7 @@ The home screen has three subjects: **📖 中文**, **🔤 English** and **🔢
 Every round ends with stars and a **monster sticker** for the 📒 怪獸圖鑑 (monster book): 20 original monster families, each with a baby and an evolved form (40 to collect). New monsters come first; collecting 3 of the same baby evolves it.
 
 ## Stars and gifts
-- Each right answer (or flipped card, matched pair, traced word) earns 1 ⭐, up to a **daily limit** (20 by default). The limit counts **net** stars: stars earned today minus stars lost for wrong answers.
+- Each right answer (or matched pair, traced word) earns 1 ⭐; Flip Cards are for looking and listening, so they give no stars, up to a **daily limit** (20 by default). The limit counts **net** stars: stars earned today minus stars lost for wrong answers.
 - In 聽聽揀揀 (Listen & Pick), English Listen & Pick and 數學 (Maths), each **wrong answer loses 1 ⭐**. The bank never goes below 0.
 - Stars are kept in the **⭐ 星星銀行** (star bank) on the home screen, where the child can swap them for gifts. Each swap asks the child to confirm first.
 

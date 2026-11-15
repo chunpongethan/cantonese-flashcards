@@ -32,8 +32,7 @@ export function start(ctx) {
       if (flipped && !revealed) {
         revealed = true;
         nextBtn.classList.remove('hidden');
-        ctx.seen(w);
-        ctx.star();
+        ctx.seen(w); // looking only: Flip Cards don't give stars
       }
     };
 
