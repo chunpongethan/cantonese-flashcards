@@ -1,5 +1,5 @@
 import { PRAISE, PRAISE_EN } from './words.js';
-import { FAMILIES, TYPES, EVOLVE_AT, TOTAL_FORMS, family, formName, monsterSVG } from './monsters.js';
+import { TYPES, EVOLVE_AT, TOTAL_FORMS, family, formName, monsterSVG, seriesFamilies } from './monsters.js';
 import * as speech from './speech.js';
 import * as sfx from './sfx.js';
 import * as store from './store.js';
@@ -165,7 +165,7 @@ function home() {
         h('button', {
           class: 'sticker-btn',
           onclick: () => { sfx.tap(); say('怪獸圖鑑'); stickerBook(); },
-        }, '📒 怪獸 ', h('span', { class: 'pill' }, `${store.formsOwned()}/${TOTAL_FORMS}`))),
+        }, '📒 怪獸 ', h('span', { class: 'pill' }, `${store.currentSeries() > 1 ? `第${store.currentSeries()}輯 ` : ''}${store.formsOwned()}/${TOTAL_FORMS}`))),
     ),
   ));
 }
@@ -398,6 +398,9 @@ async function reward({ gained, lost, replay, lang, game }) {
       h('div', { class: 'reward-bank' }, `銀行：⭐ ${store.stars()}`),
       !moreToday ? h('div', { class: 'reward-full' }, `今日呢個遊戲玩夠喇（${limit}/${limit}）🌙`) : null,
       got ? monsterReward(fam, got) : null,
+      got && got.seriesDone ? h('div', { class: 'series-done' },
+        h('div', { class: 'series-done-title' }, `🏆 集齊晒第 ${got.seriesDone} 輯怪獸！`),
+        h('div', {}, `第 ${got.seriesDone + 1} 輯新怪獸出現喇，快啲去搵！`)) : null,
       h('div', { class: 'reward-actions' },
         moreToday ? h('button', { class: 'big-btn', 'aria-label': '再玩', onclick: () => { sfx.tap(); replay(); } }, '🔁') : null,
         h('button', { class: 'big-btn', 'aria-label': '返主頁', onclick: () => { sfx.tap(); home(); } }, '🏠')),
@@ -409,13 +412,16 @@ async function reward({ gained, lost, replay, lang, game }) {
     await speech.speak(gained > 0 ? `Great job! You got ${gained} ${gained === 1 ? 'star' : 'stars'}!` : 'Good playing!', { lang: 'en' });
     if (token !== gameToken) return;
     if (full) speech.speak("That's all the stars for today. See you tomorrow!", { lang: 'en' });
+    else if (got && got.seriesDone) speech.speak(`Amazing! You collected every monster in series ${got.seriesDone}! A new series of monsters is here!`, { lang: 'en' });
     else if (got) speech.speak(got.isNew ? 'You found a new monster!' : got.evolved ? 'Wow! Your monster evolved!' : `Another one! ${got.count} of ${EVOLVE_AT}.`, { lang: 'en' });
     return;
   }
   await speech.speak(gained > 0 ? `好叻呀！你攞咗${gained}粒星星！` : '玩得好好呀！');
   if (token !== gameToken) return;
   if (full) speech.speak('今日嘅星星已經儲滿喇，聽日再嚟儲啦！');
-  else if (got) {
+  else if (got && got.seriesDone) {
+    speech.speak(`嘩！你集齊晒第${got.seriesDone}輯怪獸！第${got.seriesDone + 1}輯新怪獸出現喇！`);
+  } else if (got) {
     speech.speak(got.isNew ? `你搵到新怪獸：${fam.name}！`
       : got.evolved ? `嘩！${fam.name}進化做${fam.evo}喇！`
         : `${fam.name}多咗一隻，有${got.count}隻喇！集齊${EVOLVE_AT}隻就會進化！`);
@@ -447,8 +453,9 @@ function openBank() {
 }
 
 // ---------- Monster book (怪獸圖鑑) ----------
-function stickerBook() {
+function stickerBook(series = store.currentSeries()) {
   const counts = store.monsters();
+  const latest = store.currentSeries();
   const cell = (fam, stage) => {
     const have = (counts[fam.id] || 0) >= (stage === 2 ? EVOLVE_AT : 1);
     const art = h('div', { class: `monster-art ${have ? '' : 'mystery'}` });
@@ -464,7 +471,12 @@ function stickerBook() {
     });
     return btn;
   };
-  const rows = FAMILIES.map(fam => {
+  const tabs = latest > 1 ? h('div', { class: 'series-tabs' },
+    Array.from({ length: latest }, (_, k) => k + 1).map(n => h('button', {
+      class: `series-tab ${n === series ? 'on' : ''}`,
+      onclick: () => { sfx.tap(); stickerBook(n); },
+    }, `第${n}輯 ${n < latest ? '✔' : `${store.formsOwnedIn(n)}/${TOTAL_FORMS}`}`))) : null;
+  const rows = seriesFamilies(series).map(fam => {
     const n = counts[fam.id] || 0;
     return h('div', { class: 'monster-row' },
       cell(fam, 1),
@@ -472,9 +484,10 @@ function stickerBook() {
       cell(fam, 2));
   });
   show(h('div', { class: 'screen' },
-    backBar(home, h('div', { class: 'title' }, `📒 ${store.formsOwned()}/${TOTAL_FORMS}`)),
+    backBar(home, h('div', { class: 'title' }, `📒 ${latest > 1 ? `第${series}輯 ` : ''}${store.formsOwnedIn(series)}/${TOTAL_FORMS}`)),
     h('div', { class: 'body' },
-      h('p', { class: 'monster-help' }, `每玩完一回合就有一隻怪獸。集齊 ${EVOLVE_AT} 隻一樣嘅就會進化！`),
+      tabs,
+      h('p', { class: 'monster-help' }, `每玩完一回合就有一隻怪獸。集齊 ${EVOLVE_AT} 隻一樣嘅就會進化！集齊晒 ${TOTAL_FORMS} 隻就有新一輯。`),
       h('div', { class: 'monster-book' }, rows))));
 }
 

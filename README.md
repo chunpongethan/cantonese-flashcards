@@ -21,7 +21,7 @@ The home screen has three subjects: **📖 中文**, **🔤 English** and **🔢
 - **🔡 Spelling**: see the picture, hear "Spell cat.", then tap the letter tiles in order. 💡 shows the next letter, and after 2 wrong taps the right tile glows by itself. Each word earns +1 ⭐ and loses at most 1 ⭐.
 - **🔢 數學 Maths**: adding and taking away. Tap the right answer from 3–4 choices. 1-digit questions show apples to count; 2–3 digit questions are laid out in columns (豎式).
 
-Every round ends with stars and a **monster sticker** for the 📒 怪獸圖鑑 (monster book): 20 original monster families, each with a baby and an evolved form (40 to collect). New monsters come first; collecting 3 of the same baby evolves it.
+Every round ends with stars and a **monster sticker** for the 📒 怪獸圖鑑 (monster book): 20 original monster families, each with a baby and an evolved form (40 to collect). New monsters come first; collecting 3 of the same baby evolves it. When all 40 are collected, a brand-new series of 20 original monsters (generated in code, new names, colours, ears and markings) starts; the book has a tab per series.
 
 ## Stars and gifts
 - Each right answer (or matched pair, traced word) earns 1 ⭐; Flip Cards are for looking and listening, so they give no stars, up to a **daily limit** (20 by default). The limit counts **net** stars: stars earned today minus stars lost for wrong answers.

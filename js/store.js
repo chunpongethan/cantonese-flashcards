@@ -1,7 +1,7 @@
 // Progress, settings, the parent's own words, the star bank and gifts,
 // all saved on this device (localStorage).
 import { CATEGORIES } from './words.js';
-import { FAMILIES, EVOLVE_AT } from './monsters.js';
+import { EVOLVE_AT, seriesFamilies } from './monsters.js';
 
 const KEY = 'cantonese-flashcards-v1';
 
@@ -32,6 +32,7 @@ const defaults = () => ({
   activity: {},        // 'Y-M-D' -> game -> { right, wrong, seen, rounds, gained, lost } (last 60 days)
   stickers: [],        // old emoji stickers (replaced by monsters)
   monsters: {},        // monster family id -> copies collected (evolves at EVOLVE_AT)
+  monsterSeries: 1,    // which monster series is being collected now (a new one starts when all 40 are found)
   stats: {},           // id -> { seen, right, wrong, last }
   customWords: [],     // words added in the parent corner
   gifts: DEFAULT_GIFTS.map(g => ({ ...g })),
@@ -102,7 +103,7 @@ export function exportSections() {
     settings,
     gifts: data.gifts,
     words,
-    progress: { stars: data.stars, daily: data.daily, stickers: data.stickers, monsters: data.monsters, stats: data.stats, activity: data.activity },
+    progress: { stars: data.stars, daily: data.daily, stickers: data.stickers, monsters: data.monsters, monsterSeries: data.monsterSeries || 1, stats: data.stats, activity: data.activity },
     redemptions: data.redemptions,
   });
 }
@@ -128,6 +129,7 @@ export function importSections(sec) {
     if (p.daily) data.daily = p.daily;
     if (p.stickers) data.stickers = p.stickers;
     if (p.monsters) data.monsters = p.monsters;
+    if (p.monsterSeries) data.monsterSeries = p.monsterSeries;
     if (p.stats) data.stats = p.stats;
     if (p.activity) data.activity = p.activity;
   }
@@ -319,25 +321,37 @@ export const rightCount = id => data.stats[id]?.right || 0;
 // ---------- Monster stickers ----------
 // Give a monster: a family not found yet if there is one, otherwise a baby that
 // hasn't evolved yet. Returns { id, count, isNew, evolved }.
+const monsterCount = id => (data.monsters || {})[id] || 0;
+
+// Forms collected in a series: babies found + babies evolved (40 per series).
+export function formsOwnedIn(n) {
+  return seriesFamilies(n).reduce((k, f) => k + (monsterCount(f.id) > 0) + (monsterCount(f.id) >= EVOLVE_AT), 0);
+}
+export const currentSeries = () => data.monsterSeries || 1;
+export const formsOwned = () => formsOwnedIn(currentSeries());
+
 function awardMonster(quiet = false) {
   data.monsters ||= {};
-  const count = id => data.monsters[id] || 0;
-  const unseen = FAMILIES.filter(f => !count(f.id));
-  const growing = FAMILIES.filter(f => count(f.id) > 0 && count(f.id) < EVOLVE_AT);
-  const pool = unseen.length ? unseen : growing.length ? growing : FAMILIES;
+  data.monsterSeries ||= 1;
+  // Move on if the current series is already complete (e.g. finished on another phone).
+  while (formsOwnedIn(data.monsterSeries) >= seriesFamilies(data.monsterSeries).length * 2) data.monsterSeries++;
+  const fams = seriesFamilies(data.monsterSeries);
+  const unseen = fams.filter(f => !monsterCount(f.id));
+  const growing = fams.filter(f => monsterCount(f.id) > 0 && monsterCount(f.id) < EVOLVE_AT);
+  const pool = unseen.length ? unseen : growing;
   const f = pool[Math.floor(Math.random() * pool.length)];
-  const before = count(f.id);
+  const before = monsterCount(f.id);
   data.monsters[f.id] = Math.min(before + 1, EVOLVE_AT);
+  const result = { id: f.id, count: data.monsters[f.id], isNew: before === 0, evolved: before === EVOLVE_AT - 1 };
+  // All 40 collected: the next monster starts a brand-new series.
+  if (formsOwnedIn(data.monsterSeries) >= fams.length * 2) {
+    result.seriesDone = data.monsterSeries;
+    data.monsterSeries++;
+  }
   if (!quiet) save();
-  return { id: f.id, count: data.monsters[f.id], isNew: before === 0, evolved: before === EVOLVE_AT - 1 };
+  return result;
 }
 export const addMonster = () => awardMonster();
-
-// Forms collected: babies found + babies evolved (out of FAMILIES.length * 2).
-export function formsOwned() {
-  const m = data.monsters || {};
-  return FAMILIES.reduce((n, f) => n + ((m[f.id] || 0) > 0) + ((m[f.id] || 0) >= EVOLVE_AT), 0);
-}
 
 // Clears stars, stickers, exchanges and learning stats.
 // Keeps settings, the parent's own words and the gift list.

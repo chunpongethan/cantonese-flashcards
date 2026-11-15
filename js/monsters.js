@@ -39,7 +39,69 @@ export const FAMILIES = [
 ];
 
 export const TOTAL_FORMS = FAMILIES.length * 2;
-export const family = id => FAMILIES.find(f => f.id === id);
+
+// ---------- More series ----------
+// Series 1 is the hand-made list above. Every later series is a fresh set of 20 original
+// monsters, generated from the series number (so every phone gets the same series N).
+const PALETTE = ['#FF8A65', '#F06292', '#BA68C8', '#9575CD', '#7986CB', '#64B5F6', '#4FC3F7', '#4DD0E1',
+  '#4DB6AC', '#81C784', '#AED581', '#FFB74D', '#A1887F', '#90A4AE', '#E57373', '#F48FB1', '#80CBC4', '#9FA8DA'];
+const SHAPE_KEYS = ['round', 'egg', 'bean', 'pear'];
+const EYE_KEYS = ['dot', 'big', 'happy', 'sleepy', 'wink'];
+const EAR_KEYS = ['none', 'none', 'round', 'bunny'];
+const PATTERN_KEYS = ['none', 'none', 'spots', 'stripes'];
+const SYLLABLE = {
+  fire: ['火', '炎', '焰', '暖', '辣'], water: ['水', '泡', '浪', '雨', '滴'], grass: ['芽', '葉', '花', '菇', '草'],
+  spark: ['電', '閃', '雷', '光', '叮'], rock: ['石', '岩', '山', '沙', '硬'], ice: ['冰', '雪', '霜', '凍', '涼'],
+  sky: ['風', '雲', '羽', '虹', '飄'], star: ['星', '月', '夢', '亮', '銀'],
+};
+const BABY_END = ['波波', '仔', '咚咚', '點點', '豆豆', '球球', '寶寶', '丁丁', '啾啾', '嘟嘟'];
+const EVO_END = ['王', '大王', '獸', '仙', '俠', '龍', '巨人', '神', '將軍', '公主'];
+
+function rng(seed) { // small deterministic random (mulberry32)
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6D2B79F5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+const seriesCache = { 1: FAMILIES };
+export function seriesFamilies(n) {
+  if (seriesCache[n]) return seriesCache[n];
+  const r = rng(n * 7919 + 17);
+  const pick = arr => arr[Math.floor(r() * arr.length)];
+  const types = Object.keys(TYPES);
+  const used = new Set(FAMILIES.flatMap(f => [f.name, f.evo]));
+  const list = [];
+  for (let i = 0; i < 20; i++) {
+    const type = types[(i + n) % types.length];
+    let name; let evo;
+    for (let tries = 0; tries < 50; tries++) {
+      const syl = pick(SYLLABLE[type]);
+      name = syl + pick(BABY_END);
+      evo = (r() < 0.5 ? syl : pick(SYLLABLE[type])) + pick(EVO_END);
+      if (!used.has(name) && !used.has(evo) && name !== evo) break;
+    }
+    used.add(name); used.add(evo);
+    list.push({
+      id: `s${n}-m${String(i + 1).padStart(2, '0')}`,
+      type, name, evo,
+      color: pick(PALETTE),
+      shape: pick(SHAPE_KEYS),
+      eyes: pick(EYE_KEYS),
+      ears: pick(EAR_KEYS),
+      pattern: pick(PATTERN_KEYS),
+    });
+  }
+  return (seriesCache[n] = list);
+}
+
+// Which series a monster id belongs to: m01 → 1, s2-m05 → 2.
+export const seriesOf = id => (/^s(\d+)-/.test(id) ? Number(id.match(/^s(\d+)-/)[1]) : 1);
+export const family = id => seriesFamilies(seriesOf(id)).find(f => f.id === id);
 export const formName = (f, stage) => (stage === 2 ? f.evo : f.name);
 
 // ---------- Drawing ----------
@@ -166,6 +228,32 @@ function crest(f, big, t, c, dark) {
   }
 }
 
+// Ears for generated monsters (drawn behind the body).
+function ears(f, t, c, dark, light) {
+  if (f.ears === 'round') {
+    const ear = x => `<circle cx="${x}" cy="${t + 6}" r="8" fill="${c}" stroke="${dark}" stroke-width="2"/><circle cx="${x}" cy="${t + 6}" r="4" fill="${light}"/>`;
+    return ear(30) + ear(70);
+  }
+  if (f.ears === 'bunny') {
+    const ear = (x, rot) => `<g transform="rotate(${rot} ${x} ${t + 8})"><ellipse cx="${x}" cy="${t - 6}" rx="6" ry="15" fill="${c}" stroke="${dark}" stroke-width="2"/><ellipse cx="${x}" cy="${t - 5}" rx="2.8" ry="10" fill="${light}"/></g>`;
+    return ear(36, -18) + ear(64, 18);
+  }
+  return '';
+}
+
+// Body markings for generated monsters.
+function pattern(f, sh, dark) {
+  const y = sh.eyeY;
+  if (f.pattern === 'spots') {
+    return `<g fill="${dark}" opacity=".22"><circle cx="27" cy="${y + 14}" r="4"/><circle cx="73" cy="${y + 8}" r="3.5"/><circle cx="70" cy="${y + 24}" r="3"/><circle cx="31" cy="${y + 28}" r="2.6"/></g>`;
+  }
+  if (f.pattern === 'stripes') {
+    return `<g fill="none" stroke="${dark}" stroke-width="2.6" stroke-linecap="round" opacity=".28">` +
+      `<path d="M22 ${y + 6} q5 3 9 0"/><path d="M21 ${y + 16} q5 3 9 0"/><path d="M69 ${y + 6} q5 3 9 0"/><path d="M70 ${y + 16} q5 3 9 0"/></g>`;
+  }
+  return '';
+}
+
 function sparkles() {
   const s = (x, y, r) => `<path d="M${x} ${y - r} Q${x} ${y} ${x + r} ${y} Q${x} ${y} ${x} ${y + r} Q${x} ${y} ${x - r} ${y} Q${x} ${y} ${x} ${y - r}Z" fill="#FFD54F"/>`;
   return s(13, 22, 5) + s(87, 28, 4) + s(14, 76, 3.5) + s(88, 80, 4.5);
@@ -187,9 +275,11 @@ export function monsterSVG(f, stage = 1) {
       `<path d="M74 78 C92 78 95 60 86 55" fill="none" stroke="${c}" stroke-width="5.5" stroke-linecap="round"/>`);
   }
   parts.push(behind(f, big, c, dark, light));
+  parts.push(ears(f, t, c, dark, light));
   parts.push(`<ellipse cx="38" cy="89" rx="9" ry="5" fill="${dark}"/><ellipse cx="62" cy="89" rx="9" ry="5" fill="${dark}"/>`);
   parts.push(sh.body(c, dark));
   parts.push(`<ellipse cx="50" cy="${sh.eyeY + 18}" rx="15" ry="11" fill="${light}" opacity=".85"/>`);
+  parts.push(pattern(f, sh, dark));
   if (f.type === 'rock') {
     parts.push(`<path d="M26 66 l5 -3 l4 3 l-4 3Z M70 70 l4 -3 l4 3 l-4 3Z" fill="${dark}" opacity=".45"/>`);
   }

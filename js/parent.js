@@ -159,7 +159,7 @@ export function parentCorner({ show, leave, applySettings }) {
   // ----- Progress -----
   const progressLine = h('p', {});
   const renderProgress = () => {
-    progressLine.textContent = `⭐ ${store.stars()}　📒 ${store.formsOwned()}/${TOTAL_FORMS}`;
+    progressLine.textContent = `⭐ ${store.stars()}　📒 第${store.currentSeries()}輯 ${store.formsOwned()}/${TOTAL_FORMS}`;
   };
   renderProgress();
   const reset = h('button', { class: 'p-danger', onclick: () => {
