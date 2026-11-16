@@ -782,6 +782,9 @@ button:active { transform: scale(.96); }
 .p-limit-title { font-weight: 700; font-size: 15px; margin: 4px 0; }
 .p-limit-row { padding: 4px 0; }
 .p-limit-row > span { display: flex; flex-direction: column; }
+.p-limit-controls { display: flex; align-items: center; gap: 6px; flex: none; }
+.p-limit-reset-all { text-align: right; margin-bottom: 4px; }
+.p-limit-reset-all .p-btn:disabled { opacity: .45; }
 
 /* ---------- Learning report ---------- */
 :root {

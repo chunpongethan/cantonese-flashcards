@@ -224,7 +224,17 @@ export function logActivity(game, add) {
 export const allStats = () => data.stats;
 
 // ---------- Daily round limits per game ----------
-export const roundsToday = game => (data.activity?.[todayKey()]?.[game]?.rounds) || 0;
+const rawRoundsToday = game => (data.activity?.[todayKey()]?.[game]?.rounds) || 0;
+// A parent can reset today's count: we remember how many rounds were played at the reset,
+// so the learning report still counts every round played.
+const roundOffset = game => (data.daily.date === todayKey() ? (data.daily.roundOffsets || {})[game] || 0 : 0);
+export const roundsToday = game => Math.max(0, rawRoundsToday(game) - roundOffset(game));
+export function resetRoundsToday(games) {
+  const d = today();
+  d.roundOffsets = { ...(d.roundOffsets || {}) };
+  for (const g of games) d.roundOffsets[g] = rawRoundsToday(g);
+  save();
+}
 export const roundLimit = game => (data.settings.roundLimits || {})[game] || 0;
 export function canPlay(game) {
   const limit = roundLimit(game);

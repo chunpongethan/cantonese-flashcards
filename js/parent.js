@@ -240,14 +240,26 @@ function roundLimits() {
       games.forEach(g => store.setRoundLimit(g, n));
       render();
     });
+    const playedAny = games.some(g => store.roundsToday(g) > 0);
+    const resetAll = h('button', { class: 'p-btn p-small', disabled: !playedAny, onclick: () => {
+      if (!confirm('將全部遊戲今日玩咗嘅次數重設為 0？（學習報告唔受影響）')) return;
+      store.resetRoundsToday(games);
+      render();
+    } }, '↺ 全部今日次數重設為 0');
     box.replaceChildren(
-      h('p', { class: 'p-muted' }, '每個遊戲每日最多玩幾多回合。玩夠之後個遊戲會鎖住，聽日再開。'),
+      h('p', { class: 'p-muted' }, '每個遊戲每日最多玩幾多回合。玩夠之後個遊戲會鎖住，聽日再開。撳「重設」可以即刻俾佢再玩。'),
       h('label', { class: 'p-row p-limit-all' }, '全部遊戲一齊設定', all),
+      h('div', { class: 'p-limit-reset-all' }, resetAll),
       ...SECTIONS.map(sec => h('div', { class: 'p-limit-group' },
         h('div', { class: 'p-limit-title' }, sec.name),
-        sec.games.map(([g, name]) => h('label', { class: 'p-row p-limit-row' },
-          h('span', {}, name, h('span', { class: 'r-sub' }, `　今日玩咗 ${store.roundsToday(g)}`)),
-          select(store.roundLimit(g), n => { store.setRoundLimit(g, n); render(); }))))));
+        sec.games.map(([g, name]) => {
+          const played = store.roundsToday(g);
+          return h('div', { class: 'p-row p-limit-row' },
+            h('span', {}, name, h('span', { class: 'r-sub' }, `今日玩咗 ${played}`)),
+            h('div', { class: 'p-limit-controls' },
+              played ? h('button', { class: 'p-btn p-small', 'aria-label': `重設${name}今日次數`, onclick: () => { store.resetRoundsToday([g]); render(); } }, '重設') : null,
+              select(store.roundLimit(g), n => { store.setRoundLimit(g, n); render(); })));
+        }))));
   };
   render();
   return box;
