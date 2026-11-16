@@ -2,6 +2,7 @@
 import { h, pic, shuffle, wait } from '../ui.js';
 
 const ABC = 'abcdefghijklmnopqrstuvwxyz';
+const HINTS_PER_WORD = 2; // 💡 taps and automatic glows together
 
 // Only plain one-word English words fit this game (no "ice cream" or "T-shirt").
 export const spellable = (w, maxLen) =>
@@ -30,13 +31,32 @@ export function start(ctx) {
     const ask = () => ctx.speak(`Spell ${w.say}.`);
 
     let tiles = [];
+    let hintsLeft = HINTS_PER_WORD;
+    const hintBtn = h('button', { class: 'big-btn hint-btn', 'aria-label': 'Hint' });
+    const showHints = () => {
+      hintBtn.replaceChildren('💡', h('span', { class: 'hint-count' }, String(hintsLeft)));
+      hintBtn.classList.toggle('used-up', hintsLeft <= 0);
+    };
+    showHints();
+    // Light up the next letter, if this word still has a hint left.
     const hintNext = () => {
+      if (hintsLeft <= 0) return false;
       const t = tiles.find(x => !x.disabled && x.dataset.l === letters[pos]);
-      if (!t) return;
+      if (!t) return false;
+      hintsLeft--;
+      showHints();
       t.classList.remove('hint');
       void t.offsetWidth;
       t.classList.add('hint');
+      return true;
     };
+    hintBtn.addEventListener('click', () => {
+      if (locked) return;
+      if (hintNext()) { ctx.sfx.tap(); return; }
+      ctx.sfx.boop();
+      ctx.wiggle(hintBtn);
+      ctx.speak('No more hints for this word. You can do it!');
+    });
 
     async function tap(b) {
       if (locked || b.disabled) return;
@@ -87,7 +107,7 @@ export function start(ctx) {
         h('div', { class: 'spell-pic' }, pic(w), w.zh ? h('div', { class: 'zh-hint' }, w.zh) : null),
         h('div', { class: 'spell-buttons' },
           h('button', { class: 'speaker-btn small', 'aria-label': 'Listen', onclick: () => { ctx.sfx.tap(); ctx.say(w); } }, '🔊'),
-          h('button', { class: 'big-btn hint-btn', 'aria-label': 'Hint', onclick: () => { ctx.sfx.tap(); hintNext(); } }, '💡'))),
+          hintBtn)),
       slotRow,
       h('div', { class: 'letters' }, tiles)));
 

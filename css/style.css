@@ -642,7 +642,13 @@ button:active { transform: scale(.96); }
 .spell-pic .pic.count { font-size: 22px; max-width: 130px; }
 .spell-pic .zh-hint { font-size: 20px; margin: 0; }
 .spell-buttons { display: flex; flex-direction: column; gap: 12px; align-items: center; }
-.hint-btn { width: 64px; height: 64px; font-size: 30px; }
+.hint-btn { width: 64px; height: 64px; font-size: 30px; position: relative; }
+.hint-count {
+  position: absolute; top: -4px; right: -4px; min-width: 24px; height: 24px; border-radius: 12px;
+  background: var(--accent); color: #fff; font: 700 15px/24px system-ui, sans-serif; text-align: center;
+}
+.hint-btn.used-up { filter: grayscale(1); opacity: .45; }
+.hint-btn.used-up .hint-count { background: #9E9E9E; }
 
 .slots {
   --n: 4;

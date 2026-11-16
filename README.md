@@ -18,7 +18,7 @@ The home screen has three subjects: **📖 中文**, **🔤 English** and **🔢
 - **📝 Fill In (English)**: a sentence with a blank and a picture clue; pick the word from 3 choices in the same topic. The sentences are written for the app.
 - **🕒 Clock & Numbers**: read a clock ("What time is it?" → "nine o'clock") or match a number to its word (8 → "eight"), for 1–12.
 - To add new English book words or sentences, edit `js/english-lessons.js`.
-- **🔡 Spelling**: see the picture, hear "Spell cat.", then tap the letter tiles in order. 💡 shows the next letter, and after 2 wrong taps the right tile glows by itself. Each word earns +1 ⭐ and loses at most 1 ⭐.
+- **🔡 Spelling**: see the picture, hear "Spell cat.", then tap the letter tiles in order. 💡 shows the next letter, and after 2 wrong taps the right tile glows by itself; together these give at most **2 hints per word** (the 💡 badge counts down). Each word earns +1 ⭐ and loses at most 1 ⭐.
 - **🔢 數學 Maths**: adding and taking away. Tap the right answer from 3–4 choices. 1-digit questions show apples to count; 2–3 digit questions are laid out in columns (豎式).
 
 Every round ends with stars and a **monster sticker** for the 📒 怪獸圖鑑 (monster book): 20 original monster families, each with a baby and an evolved form (40 to collect). New monsters come first; collecting 3 of the same baby evolves it. When all 40 are collected, a brand-new series of 20 original monsters (generated in code, new names, colours, ears and markings) starts; the book has a tab per series.
